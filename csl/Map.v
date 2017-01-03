@@ -1,4 +1,4 @@
-Require Import Classical MySets ClassicalEpsilon FunctionalExtensionality.
+Require Import Classical CSLSets ClassicalEpsilon FunctionalExtensionality.
 
 Set Implicit Arguments.
 
@@ -161,8 +161,8 @@ Module Type S.
   Hint Rewrite merge_empty1 merge_empty2 using solve [ eauto 1 ].
   Hint Rewrite merge_empty1_alt merge_empty2_alt using congruence.
 
-  Hint Rewrite merge_add1 using solve [ eauto | unfold MySets.In; autorewrite with core in *; simpl in *; intuition congruence ].
-  Hint Rewrite merge_add1_alt using solve [ congruence | unfold MySets.In; autorewrite with core in *; simpl in *; intuition congruence ].
+  Hint Rewrite merge_add1 using solve [ eauto | unfold CSLSets.In; autorewrite with core in *; simpl in *; intuition congruence ].
+  Hint Rewrite merge_add1_alt using solve [ congruence | unfold CSLSets.In; autorewrite with core in *; simpl in *; intuition congruence ].
 
   Axiom includes_intro : forall K V (m1 m2 : fmap K V),
       (forall k v, m1 $? k = Some v -> m2 $? k = Some v)

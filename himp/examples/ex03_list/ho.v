@@ -46,11 +46,6 @@ Inductive ho_spec (A : Spec kcfg): Spec kcfg :=
       (z_spec Z.even A [oddDef] EvenDef) ->
       z_spec Z.odd (ho_spec A) [EvenDef] oddDef.
 
-
-
-Definition test : forall A OddDef x y, z_spec Z.even (ho_spec A) [OddDef] (FunDef "even" x y).
-intros. unfold z_spec. intros. unfold heap_fun. intros. unfold value_heap.
-
 Inductive nonho_spec : Spec kcfg :=
 | even_final :
     z_spec Z.even nonho_spec [oddDef] evenDef
@@ -141,9 +136,5 @@ Proof.
   apply ho_gfp.
 Qed.
 
-Inductive my_spec : Spec kcfg :=
-| my_even :
-    z_spec Z.even my_spec [oddDef] evenDef.
-
-Print Assumptions ho_ok.
+(* Print Assumptions ho_ok. *)
 

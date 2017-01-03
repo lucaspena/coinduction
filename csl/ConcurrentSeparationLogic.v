@@ -3,7 +3,7 @@
   * Author: Adam Chlipala
   * License: https://creativecommons.org/licenses/by-nc-nd/4.0/ *)
 
-Require Import Map MySets Setoid Classes.Morphisms.
+Require Import Map CSLSets Setoid Classes.Morphisms.
 Require Import Decidable Coq.Logic.Eqdep Coq.Logic.EqdepFacts Peano_dec Coq.omega.Omega.
 
 Require Import ho_proof_until_gen.
@@ -184,8 +184,6 @@ Definition ptsto (a v : nat) : heap -> Prop := fun h => h = $0 $+ (a, v).
 
 (* Recall that each lock has an associated invariant.  This program only uses
  * lock 0, and here's its invariant: memory cell 0 holds a positive number. *)
-Print ptsto.
-
 Definition incrementer_inv := 
   (exists n, ptsto 0 n * [| n > 0 |])%sep.
 
@@ -315,7 +313,7 @@ Proof.
   intros. simpl in H2. inversion H2. apply ho_gfp. 
 Qed.   
 
-Print Assumptions ho_ok_one.
+(* Print Assumptions ho_ok_one. *)
 
 Lemma map_get : forall n (v : nat), ($0 $+ (0, n) $+ (0, n)) $? 0 = Some v -> n = v.
 Proof.
@@ -438,5 +436,5 @@ Proof.
   intros. inversion H. apply ho_gfp.
 Qed.
 
-Print Assumptions ho_ok_all.
+(* Print Assumptions ho_ok_all. *)
 
