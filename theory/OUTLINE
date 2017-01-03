@@ -1,0 +1,64 @@
+Guide to the various proof about coinduction here.
+
+coinduction.v is very focused for use in (first-order) proof examples.
+  It's specialized to kstyle and transitivity,
+  and first-order claims.
+(should probably check adequacy w.r.t the generic stuff).
+
+pattern.v checks that using predicates we can validate the
+  axioms we want matching logic patterns to have.
+
+Other files tell the generic story.
+
+Current main is contrans_derived.v
+Has core definitions, plus extra stuff.
+ - mostly organized.
+
+Merging stuff into cotrans_derived.v, only
+  remaining file to merge is ex_path.v
+
+Other tidying in cotrans_derived.v:
+* Make diagram of relationship of compositionality properties
+Group soundness properties into ones with the
+ extra assumption, ones with the assumption dropped,
+ and the ones done for compositionality.
+ - Compositionality properties are organized now.
+ - checked where mono is needed in that cluster
+ * Do we want to check which properties are wlog mono?
+   - some of that follow from what we have proved,
+     and inclusions that don't need mono.
+
+- fixpoints.v split out for generic gfp/lfp definition
+  Also has some proof of higher-order soundness condition,
+  which has almost entirely been extended with weakening
+  (has one admit to fix)
+
+ho_pred.v
+  just copies enough stuff to start working with higher-order predicates,
+  and specializes it to a particular language
+
+  Check that an arbitrarily high order predicate has the right
+  variance, discovering that we need to assume "weakenability":
+   if predicate P implies Q, then R x P should imply R x Q.
+   (weakning is sound, so we ought to be able to do the old w.l.o.g thing)
+
+  Also has some stuff about closing sets under weakening,
+  which seems to be a necessary condition in the higher-order case
+
+* ex_path.v
+  - Higher-order spec example
+  - has a version of derived defined directly in 
+    terms of a least fixed point,
+    also version for higher-order rules.
+
+* derived_properties.v
+A more generic file, trying to prove general
+stuff without committing to an actual definition of step,
+for two purposes:
+1) To see how much of the reasoning about equivalent soundness definitions
+   in cotrans_derived depends on being one-path
+2) To show some things like transitivity are valid for both one and all path
+
+* gen_steps.v
+  using computation in constructor types to get some degree of K-style
+  context abstraction.

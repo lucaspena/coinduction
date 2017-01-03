@@ -1,0 +1,561 @@
+Set Implicit Arguments.
+
+Create HintDb mono discriminated.
+
+Section ExPath.
+
+Variable cfg : Set.
+Variable step : cfg -> cfg -> Prop.
+
+(* The actual semantic notion of reachability *)
+CoInductive reaches (x : cfg) (P : cfg -> Prop) : Prop :=
+  | Done : P x -> reaches x P
+  | Step : forall y, step x y -> reaches y P -> reaches x P
+  .
+
+Definition RRel : Type := cfg -> (cfg -> Prop) -> Prop.
+Definition subrel (A B : RRel) : Prop := forall x P, A x P -> B x P.
+Lemma subrel_trans (A B C : RRel) : subrel A B -> subrel B C -> subrel A C.
+Proof. firstorder. Qed.
+
+(* A set of claimed proerties is sound if all are valid *)
+Definition sound (X : RRel) : Prop := subrel X reaches.
+
+(* To prove soundness, we will use coinduction *)
+(* First, here is a functor of which reaches is the greatest fixpoint *)
+Inductive stepF (X : RRel) (x : cfg) (P : cfg -> Prop) : Prop :=
+  | DoneF : P x -> stepF X x P
+  | StepF : forall y, step x y -> X y P -> stepF X x P.
+(* To show it's actually a functor, we need to prove monotonicity. *)
+
+Definition mono (F : RRel -> RRel) := forall A B, subrel A B -> subrel (F A) (F B).
+Lemma step_mono : mono stepF.
+(* For most simple types, we just need to do a case analysis, apply the
+   hypothesis if applicable, and reapply some constructor, so name the tactic*)
+Ltac mono_tac typename := induction 2;eauto using typename.
+mono_tac stepF.
+Qed.
+Hint Resolve step_mono : mono.
+
+(* Now that we have a functor, we'll show reaches is a fixpoint *)
+Lemma reaches_fixed : forall x P, reaches x P <-> stepF reaches x P.
+split;destruct 1;eauto using stepF,reaches.
+Qed.
+
+(* One equivalent definition of being the greatest fixpoint of
+   F is that a fixpoint includes every F-stable set *)
+
+(* A set of claims is stable if each is also justified by
+   stepF from other claims in the set *)
+Definition stable (X : RRel) : Prop := subrel X (stepF X).
+
+CoFixpoint stable_sound X (Hstable : stable X) : sound X :=
+  fun x P HxP =>
+  match Hstable _ _ HxP with
+  | DoneF Px => Done _ _ Px
+  | StepF y Rxy XyP => Step Rxy (@stable_sound _ Hstable _ _ XyP)
+  end.
+
+Definition union (F G : RRel -> RRel) : RRel -> RRel :=
+  fun X x P => F X x P \/ G X x P.
+Lemma union_mono F G : mono F -> mono G -> mono (union F G).
+firstorder.
+Qed.
+
+Definition const (X : RRel) : RRel -> RRel := fun _ => X.
+Lemma const_mono X : mono (const X).
+firstorder.
+Qed.
+Hint Resolve union_mono const_mono : mono.
+
+Definition empty : RRel := fun _ _ => False.
+
+(* lfp : (RRel -> RRel) -> RRel *)
+Inductive lfpF (F : RRel -> RRel) (X : RRel) (x : cfg) (P : cfg -> Prop) : Prop :=
+  | leaf : X x P -> lfpF F X x P
+  | Lfp' : forall Q, subrel Q (lfpF F X) -> F Q x P -> lfpF F X x P.
+Definition Lfp : forall F X x P, F (lfpF F X) x P -> lfpF F X x P :=
+  fun F X x P H => Lfp' x P(fun _ _ H => H) H.
+
+(* The mendler-style use of Q in Lfp' effectively monotone-izes F *)
+
+Lemma lfp_mono F : mono (lfpF F).
+mono_tac lfpF.
+Qed.
+Hint Resolve lfp_mono : mono.
+
+Definition subop (F G : RRel -> RRel) : Prop :=
+  forall X, subrel (F X) (G X).
+
+Lemma lfp_lift F G : subop F G -> subop (lfpF F) (lfpF G).
+unfold subop,subrel;induction 2;eauto using lfpF.
+Qed.
+
+Lemma lfp_join : forall F, mono F ->
+  forall X, subrel (lfpF F (lfpF F X)) (lfpF F X).
+unfold mono,subrel;induction 2;eauto using lfpF.
+Qed.
+Lemma lfp_dup : forall F, mono F ->
+  forall X, subrel (lfpF F X) (lfpF F (lfpF F X)).
+unfold mono,subrel;induction 2;eauto using lfpF.
+Qed.
+
+Definition F_closed (F : RRel -> RRel) (X : RRel) : Prop :=
+  subrel (F X) X.
+
+Definition derived F X := lfpF (union F stepF) X.
+
+Definition derived_valid (F : RRel -> RRel) : Prop :=
+  forall X, F_closed F (stepF (derived F X)).
+
+Lemma derived_stable F : mono F -> derived_valid F ->
+  forall X, subrel X (stepF (derived F X)) -> stable (derived F X).
+intros F_mono F_valid X X_proof.
+induction 1.
+apply X_proof;assumption.
+destruct H1.
+apply (F_valid X);apply (F_mono _ _ H0);assumption.
+apply (step_mono H);assumption.
+Qed.
+
+Lemma derived_sound F : mono F -> derived_valid F ->
+  forall X, subrel X (stepF (derived F X)) -> sound X.
+intros F_mono F_valid X X_proof.
+(* go through stability of (derived F X) *)
+apply subrel_trans with (derived F X).
+(* inclusion of X in derived F X *)
+unfold subrel,derived,union. auto using Lfp.
+(* soundness of (derived F X) by stability *)
+apply stable_sound.
+apply derived_stable;assumption.
+Qed.
+
+Definition F_proved F X :=
+  subrel X (stepF (derived F X)).
+
+Definition derived' F X := lfpF (union F (union stepF X)) empty.
+
+Lemma lfp_move F X :
+  subrel (lfpF F X) (lfpF (union F (const X)) empty).
+unfold union;induction 1;eauto using Lfp,lfpF.
+Qed.
+
+Lemma const_to_rules F X : mono F ->derived_valid F ->
+  (F_proved F X -> derived_valid (union F (const X))).
+intros F_mono F_valid X_proved.
+unfold derived_valid.
+intro Y.
+unfold F_closed.
+destruct 1.
+(* the F side should be discharged pretty easilty from F_valid and
+   various monotonicity properties of lfpF *)
+specialize (F_valid (derived (union F (const X)) Y)).
+clear -F_mono F_valid H.
+revert x P H.
+match goal with [|- forall x P, F ?X x P -> ?X x P] => fold
+  (subrel (F X) X) end.
+unfold F_closed in F_valid.
+match goal with [H : subrel ?B ?C |- subrel ?A ?D] =>
+  apply subrel_trans with B;[|apply subrel_trans with C;[assumption|]];clear H
+end.
+apply F_mono;apply step_mono;unfold subrel;intros;apply leaf;assumption.
+apply step_mono.
+eapply subrel_trans;[|apply lfp_join;auto using union_mono, const_mono, step_mono].
+apply lfp_lift. firstorder.
+(* The other side uses stuff about lfpF to move X from
+   the base set into a const X term in the operator *)
+unfold const in H.
+apply X_proved in H.
+revert H.
+apply step_mono.
+apply subrel_trans with (lfpF (union (union F stepF) (const X)) empty).
+apply lfp_move.
+specialize (F_valid (derived (union F (const X)) Y)).
+apply subrel_trans with (lfpF (union (union F stepF) (const X)) Y).
+apply lfp_mono.
+firstorder.
+unfold derived.
+apply lfp_lift.
+firstorder.
+Qed.
+
+Inductive trans (X : RRel) (x : cfg) (P : cfg -> Prop) : Prop :=
+  | Trans : forall S, X x S -> (forall y, S y -> X y P) -> trans X x P.
+
+Lemma trans_mono : mono trans.
+Proof. mono_tac trans. Qed.
+Hint Resolve trans_mono : mono.
+
+Lemma trans_valid : derived_valid trans.
+Proof. unfold derived_valid, F_closed, subrel.
+destruct 1.
+destruct H.
+auto.
+apply (StepF _ _ H).
+apply Lfp. left. econstructor.
+eassumption.
+intros y0 Sy.
+apply Lfp. right. auto.
+Qed.
+
+Inductive ederived (F : RRel -> RRel)
+                   (x : cfg) (P : cfg -> Prop) : Prop :=
+  | edone : P x -> ederived F x P
+  | enext : forall y, step x y ->
+                      ederived F y P -> ederived F x P
+  | erule' : forall (Q : RRel), subrel Q (ederived F) ->
+                                F Q x P -> ederived F x P.
+
+Definition non_passing (F : RRel -> RRel) : Prop :=
+   forall Q, subrel Q reaches -> subrel (F Q) reaches.
+
+Lemma fwd (F : RRel -> RRel) (F_mono : mono F) :
+  non_passing F -> subrel (ederived F) reaches.
+unfold non_passing.
+intro H_np.
+unfold subrel.
+intros x P H.
+induction H.
+apply Done; assumption.
+eapply Step;eauto.
+apply H_np with Q.
+assumption.
+assumption.
+Qed.
+
+Definition np_merge (F G : RRel -> RRel) :
+  non_passing F -> non_passing G ->
+  non_passing (fun X x P => F X x P \/ G X x P).
+firstorder.
+Qed.
+
+Goal forall (F : RRel -> RRel), mono F ->
+   (non_passing F <-> (subrel (F reaches) reaches)).
+intros F F_mono.
+split.
+intro. apply H. unfold subrel; tauto.
+intros.
+unfold non_passing.
+intros Q HQ.
+apply subrel_trans with (F reaches).
+apply F_mono. assumption.
+assumption.
+Qed.
+(* 
+   non_passing means lfp under reach, but
+   can't prove converse: let
+   F emptyset = emptyset
+   F _ = All.
+  Is montone, least fixedpoint is emptyset <= reaches,
+  but not bounded above.
+ *)
+
+Definition sem_complete (F : RRel -> RRel) :=
+   forall X,
+     subrel X reaches -> exists Y,
+      subrel X Y /\ subrel Y (stepF (derived F Y)).
+Definition sem_sound (F : RRel -> RRel) :=
+   forall X,
+      subrel X (stepF (derived F X)) -> subrel X reaches.
+
+Lemma bound_complete (F : RRel -> RRel) (F_mono : mono F) :
+  subrel (F reaches) reaches -> sem_complete F.
+intros X X_true. exists reaches. split. assumption.
+ clear. unfold subrel; intros. apply reaches_fixed in H.
+ revert x P H. apply step_mono.
+ unfold subrel; intros. apply leaf;assumption.
+Qed.
+
+(* obv. fails that F reaches <= reaches implies sem_sound,
+   just consider F X = reaches if X <= reaches, All otherwise,
+   then X <= step All has "proof" w.r.t. F *)
+
+(* Anything that does imply that closedness? *)
+
+Parameter rules : RRel -> RRel.
+Parameter rules_mono : mono rules.
+Parameter rules_valid : derived_valid rules.
+
+Print derived_valid.
+
+Parameter ho_spec : RRel -> RRel -> RRel. (* neg, pos *)
+Parameter ho_spec_order :
+  forall (A B X Y : RRel),
+    subrel B A -> subrel X Y -> subrel (ho_spec A X) (ho_spec B Y).
+
+
+
+
+End ExPath.
+
+Section Refinement.
+Variable cfg1 cfg2 : Set.
+Variable step1 : cfg1 -> cfg1 -> Prop.
+Variable step2 : cfg2 -> cfg2 -> Prop.
+
+Variable f : cfg1 -> cfg2.
+Variable rproofs : forall a b, step1 a b ->
+                               stepF step2 (reaches step2) (f a) (eq (f b)).
+
+(* probably not stated right: *)
+Lemma simulates : forall Q,
+  subrel Q (stepF step1 (reaches step1)) ->
+  subrel (fun y S => exists x, f x = y /\ Q x (fun x' => S (f x')))
+    (stepF step2 (derived step2 (@trans cfg2) (reaches step2))).
+Abort.
+
+End Refinement.
+
+Require Import List.
+
+Inductive inst :=
+  | call
+  | prim (op : list nat -> list nat)
+  .
+
+Inductive cfg :=
+  Cfg : list inst -> list nat -> cfg.
+
+Parameter prog : nat -> option (list inst).
+  
+Inductive step : cfg -> cfg -> Prop :=
+  | prim_step : forall f code stk,
+                  step (Cfg (prim f :: code) stk)
+                       (Cfg code (f stk))
+  | prim_call : forall label code code' stk,
+                  prog label = Some code' ->
+                  step (Cfg (call :: code) (label :: stk))
+                       (Cfg code' stk).
+
+Parameter l1 : nat.
+Parameter l2 : nat.
+
+Definition shuffle1 stk :=
+  match stk with
+  | a :: b :: c :: k :: e :: r :: stk' =>
+    k :: e :: a :: b :: l2 :: c :: k :: e :: r :: stk'
+  | _ => stk
+  end.
+Definition shuffle2 stk : list nat :=
+  match stk with
+  | x :: c :: k :: e :: r :: stk' =>
+    k :: e :: x :: c :: r :: stk'
+  | _ => stk
+  end.
+
+Parameter l1_def :
+  prog l1 = Some (prim shuffle1 :: call :: nil).
+Parameter l2_def :
+  prog l2 = Some (prim shuffle2 :: call :: nil).
+
+Inductive spec (Reaches : RRel cfg) : RRel cfg :=
+  | l1_spec : forall (f : nat -> nat -> nat),
+      forall code a b c k e r stk,
+        (forall code x y ret stk,
+           Reaches (Cfg (call :: code) (k::e::x::y::ret::stk))
+                   (fun cfg => match cfg with
+                     | Cfg (call :: _) (ret'::z::stk') => ret' = ret /\ stk' = stk /\ z = f x y
+                     | _ => False
+                    end)) ->
+        spec Reaches (Cfg (call :: code)
+                          (l1 :: a :: b :: c :: k :: e :: r :: stk))
+                   (fun cfg => match cfg with
+                     | Cfg (call :: _) (r'::z::stk') => r' = r /\ stk' = stk /\ z = f (f a b) c
+                     | _ => False
+                    end)
+  .
+
+Ltac mono_tac typename := induction 2;eauto using typename.
+
+Lemma spec_mono : mono spec.
+Proof. mono_tac spec. Qed.
+Hint Resolve spec_mono : mono.
+
+Lemma stepF_in_derivedF : forall F X, subrel (stepF step (derived step F X)) (derived step F X).
+unfold subrel;intros;apply Lfp;right;assumption.
+Qed.
+
+Lemma spec_proof : derived_valid step (union trans spec).
+unfold derived_valid, F_closed,subrel.
+intros X x P claim.
+destruct claim.
+(* showing transitivity *)
+destruct H.
+destruct H.
+auto.
+apply StepF with y. assumption.
+apply Lfp. left. left. change (trans (derived step (union trans spec) X) y P).
+econstructor. eassumption. intros;apply stepF_in_derivedF;auto.
+
+(* actually showing spec *)
+destruct H.
+eapply StepF.
+constructor.
+eexact l1_def.
+apply Lfp. right. eapply StepF. constructor.
+simpl shuffle1.
+apply Lfp. left. left.
+econstructor.
+apply stepF_in_derivedF. apply H.
+intros y Hy.
+destruct y.
+destruct l;try solve[destruct Hy].
+destruct i;try solve[destruct Hy].
+destruct l0;try solve[destruct Hy].
+destruct l0;try solve[destruct Hy].
+decompose record Hy;subst;clear -H.
+apply Lfp.
+right.
+eapply StepF.
+constructor.
+eexact l2_def.
+apply Lfp.
+right.
+eapply StepF.
+econstructor.
+simpl.
+apply Lfp. left. left.
+econstructor.
+apply stepF_in_derivedF. apply H.
+clear;intros y Hy.
+destruct y.
+destruct l;try solve[destruct Hy].
+destruct i;try solve[destruct Hy].
+destruct l0;try solve[destruct Hy].
+destruct l0;try solve[destruct Hy].
+decompose record Hy;subst;clear.
+apply Lfp. right.
+eapply DoneF.
+repeat split;reflexivity.
+Qed.
+
+Parameter l3 : nat.
+Definition alu_shuffle stk : list nat :=
+  match stk with
+  | o :: a :: b :: r :: stk' =>
+    r :: (match o with 0 => a + b | 1 => a * b | _ => 0 end) :: stk'
+  | _ => stk
+  end.
+Parameter l3_def : prog l3 = Some (prim alu_shuffle :: call :: nil).
+
+Inductive alu_spec : RRel cfg :=
+  | AluSpec : forall code o a b r stk,
+                 alu_spec
+                   (Cfg (call :: code) (l3 :: o :: a :: b :: r :: stk))
+                   (fun cfg => match cfg with
+                     | Cfg (call :: _) (r' :: z :: stk') => r' = r /\ stk' = stk /\
+                                (match o with 0 => z = a + b
+                                           | 1 => z = a * b
+                                           | _ => True
+                                 end)
+                     | _ => False
+                               end).
+  
+Lemma alu_proof : F_proved step (union trans spec) alu_spec.
+unfold F_proved, subrel.
+intros x P claim.
+destruct claim.
+(* The alu spec *)
+eapply StepF;[constructor|].
+exact l3_def.
+apply Lfp;right. eapply StepF;[constructor|].
+apply Lfp;right. apply DoneF.
+unfold alu_shuffle.
+split. reflexivity.
+split. reflexivity.
+destruct o.
+reflexivity.
+destruct o.
+reflexivity.
+exact I.
+Qed.
+
+Lemma example : forall code a b c r stk,
+                  reaches step
+                  (Cfg (call :: code) (l1 :: a :: b :: c :: l3 :: 0 ::r :: stk))
+                  (fun cfg => match cfg with
+                  | Cfg (call :: _) (r' :: z :: stk') =>
+                      r' = r /\ stk' = stk /\ z = (a + b) + c
+                  | _ => False
+                  end).
+
+intros.
+cut (sound step (derived step (union trans spec) alu_spec)).
+intro H; apply H.
+apply Lfp. left;right. 
+(* It's in the spec *)
+apply l1_spec.
+clear.
+intros.
+apply leaf. constructor.
+
+(* soundness of spec *)
+apply stable_sound.
+apply derived_stable.
+apply union_mono. apply trans_mono. apply spec_mono.
+exact spec_proof.
+exact alu_proof.
+Qed.
+
+(* and a really concrete instance *)
+Lemma example' : forall r,
+                   reaches step
+                           (Cfg (call :: nil) (l1 :: 1 :: 2 :: 3 :: l3 :: 0 :: r :: nil))
+                           (fun cfg => match cfg with
+                                         | Cfg (call :: _) (r' :: z :: stk') =>
+                                           r' = r /\ stk' = nil /\ z = 6
+                                         | _ => False
+                                       end).
+intro r. apply example.
+Qed.
+
+(* even a sample execution *)
+Inductive path (x : cfg) : cfg -> Prop :=
+  | finish : path x x
+  | extend : forall y, step x y -> forall z, path y z -> path x z.
+Lemma example'' : forall r,
+   path (Cfg (call :: nil) (l1 :: 1 :: 2 :: 3 :: l3 :: 0 :: r :: nil))
+        (Cfg (call :: nil) (r :: 6 :: nil)).
+intro r.
+pose proof l1_def.
+pose proof l2_def.
+pose proof l3_def.
+repeat (eapply extend;[constructor(eassumption)|]);apply finish.
+Qed.
+
+(*
+Parameter l1_def :
+  prog l1 = Some (prim shuffle1 :: call :: nil).
+Parameter l2_def :
+  prog l2 = Some (prim shuffle2 :: call :: nil).
+ *)
+
+Inductive ho_spec (Reaches : RRel cfg) : RRel cfg :=
+  | h_lift : forall x P, Reaches x P -> ho_spec Reaches x P
+  | h_spec : forall (f : nat -> nat -> nat),
+     forall Q, subrel Q (ho_spec Reaches) ->
+      (forall code a b c k e r stk,
+        (forall code x y ret stk,
+           Q (Cfg (call :: code) (k::e::x::y::ret::stk))
+                   (fun cfg => match cfg with
+                     | Cfg (call :: _) (ret'::z::stk') => ret' = ret /\ stk' = stk /\ z = f x y
+                     | _ => False
+                    end)) ->
+          Reaches (Cfg (call :: code)
+                          (l1 :: a :: b :: c :: k :: e :: r :: stk))
+                   (fun cfg => match cfg with
+                     | Cfg (call :: _) (r'::z::stk') => r' = r /\ stk' = stk /\ z = f (f a b) c
+                     | _ => False
+                    end))
+        -> ho_spec Reaches (Cfg nil nil) (fun _ => True)
+  .
+Lemma ho_spec_mono : mono ho_spec.
+induction 2;econstructor(solve[eauto]).
+Qed.
+
+Print derived_valid.
+Lemma ho_spec_proof : forall X, subrel (ho_spec (stepF step (derived step (union trans ho_spec) X)))
+                                                (stepF step (derived step (union trans ho_spec) X)).
+destruct 1.
+assumption.
+(* well, we'll have to see... *)

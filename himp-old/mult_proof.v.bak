@@ -1,0 +1,97 @@
+Require Import ZArith.
+Require Import List.
+Require Import FMapPositive.
+Require Import String.
+Open Scope string_scope.
+
+Require Import domains.
+Require Import kstyle.
+Require Import kstep.
+
+Set Implicit Arguments.
+
+(* Test the transitivity stuff.
+   We'll want to automate this *)
+CoFixpoint mult :
+  forall (x y z k t : Z) erest env heap labels,
+    (0 <= x)%Z ->
+    (0 <= y)%Z ->
+    z = (x * y + k)%Z ->
+    env ~= ("i" |-> x :* "j" |-> y :* "k" |-> k :* "t" |-> t :* erest) ->
+  tsteps
+    (KCfg (kra (SWhile (BLe (ECon 1%Z) (EVar "i"))
+                       (Seq (SAssign "t" (EVar "j"))
+                       (Seq (SAssign "i" (EPlus (EVar "i") (ECon (-1)%Z)))
+                            (SWhile (BLe (ECon 1%Z) (EVar "t"))
+                                    (Seq (SAssign "k" (EPlus (EVar "k") (ECon 1%Z)))
+                                         (SAssign "t" (EPlus (EVar "t") (ECon (-1)%Z))))))))
+               (kra (SAssign "t" (ECon 0%Z))
+                    kdot))
+                env heap labels)
+    (KCfg kdot
+          ("i" |-> 0%Z :* "j" |-> y%Z :* "k" |-> z :* "t" |-> 0%Z :* erest) heap labels)
+with mult_sum :
+  forall (x y z : Z) krest erest env heap labels,
+    (0 <= y)%Z ->
+    z = (x + y)%Z ->
+    env ~= ("k" |-> x :* "t" |-> y :* erest) ->
+  tsteps
+    (KCfg (kra
+             (SWhile (BLe (ECon 1%Z) (EVar "t"))
+                     (Seq (SAssign "k" (EPlus (EVar "k") (ECon 1%Z)))
+                          (SAssign "t" (EPlus (EVar "t") (ECon (-1)%Z)))))
+             krest)
+          env heap labels)
+    (KCfg krest
+          ("k" |-> z :* "t" |-> 0%Z :* erest) heap labels).
+Proof.
+(* Outer *)
+* intros;repeat tstep. tsplit_if.
+(* harder true case *)
++
+simpl in H1; subst z.
+do 14 tstep.
+eapply Delay. eapply ittrans.
+  - eapply itstep;[solve[econstructor(reflexivity||equate_maps)]|].
+    eapply mult_sum; clear mult mult_sum.
+      Focus 3.
+      instantiate (3:=k).
+      instantiate (2:=y).
+      instantiate (1:="j" |-> y :* "i" |-> (x + -1)%Z :* erest).
+      equate_maps.
+      assumption.
+      simpl. reflexivity.
+  - eapply mult; clear mult mult_sum.
+    Focus 4.
+    instantiate (3:=(x + -1)%Z).
+    instantiate (2:=(k + y)%Z).
+    instantiate (1:=0%Z).
+    equate_maps.
+    omega.
+    omega.
+    ring.
+
+(* easy false case *)
++ clear mult mult_sum.
+  repeat tstep.
+  apply Done.
+  replace x with 0%Z in * |- * by omega.
+  solve[repeat split;try solve[equate_maps]].
+
+(* Inner *)
+* clear mult.
+  intros.
+  repeat tstep. tsplit_if.
+  -
+  do 17 tstep.
+  eapply mult_sum; clear mult_sum; try solve[equate_maps]; omega.
+  - clear mult_sum.
+  repeat tstep.
+  apply Done.
+  replace y with 0%Z by omega.
+  replace x with z by omega.
+  (* now they are equivalent, but ksteps was currently
+     defined in terms of eq rather than kequiv.
+    So, assert kequiv to prove we can, and then admit the eq *)
+  solve[repeat split;try solve[equate_maps]].
+Qed.

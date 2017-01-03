@@ -1,0 +1,21 @@
+ | k_cool_i : forall i e rest,
+     kcell_step kstep (kra (KInt i) (kra (KFreeze e) rest))
+                      (kra (cool_exp_kitem (ECon i) e) rest)
+ | k_cool_b : forall b e rest,
+     kcell_step kstep (kra (KBool b) (kra (KFreeze e) rest))
+                      (kra (cool_exp_kitem (BCon b) e) rest)
+ | k_cool_s : forall s e rest,
+     kcell_step kstep (kra (KStruct s) (kra (KFreeze e) rest))
+                      (kra (cool_exp_kitem (EValStruct s) e) rest)
+ | k_heat_build : forall fields v k rest,
+       find_unevaluated_entry fields = Some (v,k) ->
+       heat_step kstep (KExp (EBuild fields)) v (KFreeze (KExp (EBuild k))) rest
+ | k_heat_call : forall args v k f rest,
+       first_unevaluated_arg nil args = Some (v, k) ->
+       heat_step kstep (KExp (ECall f args)) v (KFreeze (KExp (ECall f k))) rest
+ | k_heat_scall : forall args v k f rest,
+       first_unevaluated_arg nil args = Some (v, k) ->
+       heat_step kstep (KStmt (SCall f args)) v (KFreeze (KStmt (SCall f k))) rest
+ | k_build : forall fields rest,
+       is_value_map fields = true ->
+       krule kstep [k_cell (write (kra (KExp (EBuild fields)) rest) (kra (KStruct (Struct fields)) rest))]

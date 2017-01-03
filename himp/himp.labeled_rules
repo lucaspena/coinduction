@@ -1,0 +1,509 @@
+module HIMP
+syntax Int[ hook(Int)]
+syntax Map[ hook(Map)]
+syntax Bool ::=
+   "isValueMap" "(" Map ")"  [ coq(is_value_map),  klabel('isValueMap),  predicate()]
+syntax Struct[ coq(sval)]
+syntax Struct ::=
+   Map  [ coq(Struct),  klabel(Struct)]
+syntax Undef ::=
+   "undef"  [ coq(undef)]
+syntax KResult ::=
+   Int  [ coq(Int)]
+ | Bool  [ coq(Bool)]
+ | Struct  [ coq(VStruct)]
+ | Undef  [ coq(VUndef)]
+syntax Exps ::=
+   List{Exp,","}  
+syntax Exp ::=
+   Id  [ coq(EVar)]
+ | "load" Exp  [ coq(strict,ELoad)]
+ | Int  [ coq(ECon)]
+ | "-" Exp  [ coq(ENeg),  strict()]
+ | Exp "+" Exp  [ coq(EPlus),  strict()]
+ | Exp "-" Exp  [ coq(EMinus),  strict()]
+ | Exp "*" Exp  [ coq(EMult),  strict()]
+ | Exp "/" Exp  [ coq(EDiv),  strict()]
+ | "build" Map  [ coq(EBuild)]
+ | Exp "." Id  [ coq(EProject),  strict(1)]
+ | Id "(" Exps ")"  [ coq(ECall),  klabel(ecall)]
+ | "alloc"  [ coq(EAlloc)]
+ | Bool  [ coq(BCon)]
+ | Exp "<=" Exp  [ coq(BLe),  strict()]
+ | Exp "<" Exp  [ coq(BLt),  strict()]
+ | Exp "==" Exp  [ coq(BEq)]
+ | "not" Exp  [ coq(BNot),  strict()]
+ | Exp "and" Exp  [ coq(BAnd),  strict(1)]
+ | Exp "or" Exp  [ coq(BOr),  strict(1)]
+ | Struct  [ coq(EValStruct)]
+syntax Stmt ::=
+   "skip"  [ coq(Skip)]
+ | Id ":=" Exp  [ coq(SAssign),  strict(2)]
+ | "*" Exp ":=" Exp  [ coq(HAssign),  strict()]
+ | "dealloc" Exp  [ coq(HDealloc),  strict()]
+ | Stmt ";" Stmt  [ coq(Seq)]
+ | "if" Exp "then" "{" Stmt "}" "else" "{" Stmt "}"  [ coq(SIf),  strict(1)]
+ | "while" Exp "do" "{" Stmt "}"  [ coq(SWhile)]
+ | "jump" Exp  [ coq(Jump)]
+ | "decl" Id  [ coq(Decl)]
+ | "return" Exp  [ coq(SReturn),  strict()]
+ | "return"  [ coq(SReturnVoid)]
+ | Id "(" Exps ")"  [ coq(SCall),  klabel(scall)]
+syntax Frame ::=
+   "frame" "(" K "," Map ")"  [ coq(frame),  klabel('frame)]
+syntax Frames ::=
+   List{Frame,","}  
+syntax Defn ::=
+   Id "(" Ids ")" "{" Stmt "}"  [ coq(FunDef)]
+syntax Ids ::=
+   List{Id,","}  
+syntax Pgm ::=
+   List{Defn,""}   [ klabel(_,Pgm_)]
+rule <generatedTop><k>`_Pgm_`(`'_(_){_}`(F, Args, Body), P) ~> GeneratedFreshVar66</k><funs>`'_Map_`(`'.Map`(),GeneratedFreshVar67)</funs>GeneratedFreshVar68</generatedTop> => <generatedTop><k>P ~> GeneratedFreshVar66</k><funs>`'_Map_`(`'_|->_`(F, `'_(_){_}`(F, Args, Body)),GeneratedFreshVar67)</funs>GeneratedFreshVar68</generatedTop>
+syntax Id ::=
+   "main" 
+rule <generatedTop><k>`.Pgm`()</k>GeneratedFreshVar69</generatedTop> => <generatedTop><k>`scall`(#token{"Id","main"}, `.Exps`())</k>GeneratedFreshVar69</generatedTop>
+rule <generatedTop><k>`'_+_`(I, J) ~> GeneratedFreshVar70</k>GeneratedFreshVar71</generatedTop> => <generatedTop><k>`'_+Int_`(I, J) ~> GeneratedFreshVar70</k>GeneratedFreshVar71</generatedTop>
+rule <generatedTop><k>`'_*_`(I, J) ~> GeneratedFreshVar72</k>GeneratedFreshVar73</generatedTop> => <generatedTop><k>`'_*Int_`(I, J) ~> GeneratedFreshVar72</k>GeneratedFreshVar73</generatedTop>
+rule <generatedTop><k>`'_-_`(I, J) ~> GeneratedFreshVar74</k>GeneratedFreshVar75</generatedTop> => <generatedTop><k>`'_-Int_`(I, J) ~> GeneratedFreshVar74</k>GeneratedFreshVar75</generatedTop>
+rule <generatedTop><k>`'-_`(I) ~> GeneratedFreshVar76</k>GeneratedFreshVar77</generatedTop> => <generatedTop><k>`'~Int_`(I) ~> GeneratedFreshVar76</k>GeneratedFreshVar77</generatedTop>
+rule <generatedTop><k>`'_/_`(I, J) ~> GeneratedFreshVar78</k>GeneratedFreshVar79</generatedTop> => <generatedTop><k>`'_/Int_`(I, J) ~> GeneratedFreshVar78</k>GeneratedFreshVar79</generatedTop> when `'_=/=Int_`(#token{"#Int","0"}, J)
+rule <generatedTop><k>`'_<=_`(I, J) ~> GeneratedFreshVar80</k>GeneratedFreshVar81</generatedTop> => <generatedTop><k>`'_<=Int_`(I, J) ~> GeneratedFreshVar80</k>GeneratedFreshVar81</generatedTop>
+rule <generatedTop><k>`'_<_`(I, J) ~> GeneratedFreshVar82</k>GeneratedFreshVar83</generatedTop> => <generatedTop><k>`'_<Int_`(I, J) ~> GeneratedFreshVar82</k>GeneratedFreshVar83</generatedTop>
+rule <generatedTop><k>`'_==_`(I, J) ~> GeneratedFreshVar84</k>GeneratedFreshVar85</generatedTop> => <generatedTop><k>`'_==Int_`(I, J) ~> GeneratedFreshVar84</k>GeneratedFreshVar85</generatedTop>
+rule <generatedTop><k>`'not_`(B) ~> GeneratedFreshVar86</k>GeneratedFreshVar87</generatedTop> => <generatedTop><k>`'notBool_`(B) ~> GeneratedFreshVar86</k>GeneratedFreshVar87</generatedTop>
+rule <generatedTop><k>`'_and_`(#token{"#Bool","true"}, B) ~> GeneratedFreshVar88</k>GeneratedFreshVar89</generatedTop> => <generatedTop><k>B ~> GeneratedFreshVar88</k>GeneratedFreshVar89</generatedTop>
+rule <generatedTop><k>`'_and_`(#token{"#Bool","false"}, _) ~> GeneratedFreshVar90</k>GeneratedFreshVar91</generatedTop> => <generatedTop><k>#token{"#Bool","false"} ~> GeneratedFreshVar90</k>GeneratedFreshVar91</generatedTop>
+rule <generatedTop><k>`'_or_`(#token{"#Bool","true"}, _) ~> GeneratedFreshVar92</k>GeneratedFreshVar93</generatedTop> => <generatedTop><k>#token{"#Bool","true"} ~> GeneratedFreshVar92</k>GeneratedFreshVar93</generatedTop>
+rule <generatedTop><k>`'_or_`(#token{"#Bool","false"}, B) ~> GeneratedFreshVar94</k>GeneratedFreshVar95</generatedTop> => <generatedTop><k>B ~> GeneratedFreshVar94</k>GeneratedFreshVar95</generatedTop>
+rule <generatedTop><k>`'skip`() ~> GeneratedFreshVar96</k>GeneratedFreshVar97</generatedTop> => <generatedTop><k>.K ~> GeneratedFreshVar96</k>GeneratedFreshVar97</generatedTop>
+rule <generatedTop><k>`'if_then{_}else{_}`(#token{"#Bool","true"}, S, _) ~> GeneratedFreshVar98</k>GeneratedFreshVar99</generatedTop> => <generatedTop><k>S ~> GeneratedFreshVar98</k>GeneratedFreshVar99</generatedTop>
+rule <generatedTop><k>`'if_then{_}else{_}`(#token{"#Bool","false"}, _, S) ~> GeneratedFreshVar100</k>GeneratedFreshVar101</generatedTop> => <generatedTop><k>S ~> GeneratedFreshVar100</k>GeneratedFreshVar101</generatedTop>
+rule <generatedTop><k>`'while_do{_}`(B, S) ~> GeneratedFreshVar102</k>GeneratedFreshVar103</generatedTop> => <generatedTop><k>`'if_then{_}else{_}`(B, `'_;_`(S, `'while_do{_}`(B, S)), `'skip`()) ~> GeneratedFreshVar102</k>GeneratedFreshVar103</generatedTop>
+rule <generatedTop><k>`'_._`(`'Struct`(`'_Map_`(`'_|->_`(F:Id, V:KResult), _)), F) ~> GeneratedFreshVar104</k>GeneratedFreshVar105</generatedTop> => <generatedTop><k>V ~> GeneratedFreshVar104</k>GeneratedFreshVar105</generatedTop>
+rule <generatedTop><k>I:Id ~> GeneratedFreshVar106</k><env>`'_Map_`(`'_|->_`(I, V),GeneratedFreshVar107)</env>GeneratedFreshVar108</generatedTop> => <generatedTop><k>V:KResult ~> GeneratedFreshVar106</k><env>`'_Map_`(`'_|->_`(I, V),GeneratedFreshVar107)</env>GeneratedFreshVar108</generatedTop>
+rule <generatedTop><k>`'build_`(V) ~> GeneratedFreshVar109</k>GeneratedFreshVar110</generatedTop> => <generatedTop><k>`'Struct`(V) ~> GeneratedFreshVar109</k>GeneratedFreshVar110</generatedTop> when `'isValueMap`(V)
+rule <generatedTop><k>`'alloc`() ~> GeneratedFreshVar111</k><heap>`'_Map_`(`'.Map`(),GeneratedFreshVar112)</heap><mark>M</mark>GeneratedFreshVar113</generatedTop> => <generatedTop><k>M ~> GeneratedFreshVar111</k><heap>`'_Map_`(`'_|->_`(M, `'undef`()),GeneratedFreshVar112)</heap><mark>`'_+Int_`(M, #token{"#Int","1"})</mark>GeneratedFreshVar113</generatedTop>
+rule <generatedTop><k>`'dealloc_`(Addr:Int) ~> GeneratedFreshVar114</k><heap>`'_Map_`(`'_|->_`(Addr, _),GeneratedFreshVar115)</heap>GeneratedFreshVar116</generatedTop> => <generatedTop><k>.K ~> GeneratedFreshVar114</k><heap>`'_Map_`(`'.Map`(),GeneratedFreshVar115)</heap>GeneratedFreshVar116</generatedTop>
+rule <generatedTop><k>`'load_`(Addr:Int) ~> GeneratedFreshVar117</k><heap>`'_Map_`(`'_|->_`(Addr, V),GeneratedFreshVar118)</heap>GeneratedFreshVar119</generatedTop> => <generatedTop><k>V:KResult ~> GeneratedFreshVar117</k><heap>`'_Map_`(`'_|->_`(Addr, V),GeneratedFreshVar118)</heap>GeneratedFreshVar119</generatedTop>
+rule <generatedTop><k>`'_:=_`(X, V:KResult) ~> GeneratedFreshVar120</k><env>`'_Map_`(`'_|->_`(X, _),GeneratedFreshVar121)</env>GeneratedFreshVar122</generatedTop> => <generatedTop><k>.K ~> GeneratedFreshVar120</k><env>`'_Map_`(`'_|->_`(X, V),GeneratedFreshVar121)</env>GeneratedFreshVar122</generatedTop>
+rule <generatedTop><k>`'*_:=_`(Addr, V) ~> GeneratedFreshVar123</k><heap>`'_Map_`(`'_|->_`(Addr, _),GeneratedFreshVar124)</heap>GeneratedFreshVar125</generatedTop> => <generatedTop><k>.K ~> GeneratedFreshVar123</k><heap>`'_Map_`(`'.Map`(),GeneratedFreshVar124)</heap>GeneratedFreshVar125</generatedTop>
+rule <generatedTop><k>`'decl_`(X) ~> GeneratedFreshVar126</k><env>`'_Map_`(`'.Map`(),GeneratedFreshVar127)</env>GeneratedFreshVar128</generatedTop> => <generatedTop><k>.K ~> GeneratedFreshVar126</k><env>`'_Map_`(`'_|->_`(X, `'undef`()),GeneratedFreshVar127)</env>GeneratedFreshVar128</generatedTop>
+rule <generatedTop><k>`'return_`(V:KResult) ~> _</k><env>_</env><stk>`_,Frames_`(`'frame`(Rest, Env), Stk)</stk>GeneratedFreshVar129</generatedTop> => <generatedTop><k>V ~> Rest</k><env>Env</env><stk>Stk</stk>GeneratedFreshVar129</generatedTop>
+rule <generatedTop><k>`'return`() ~> _</k><env>_</env><stk>`_,Frames_`(`'frame`(Rest, Env), Stk)</stk>GeneratedFreshVar130</generatedTop> => <generatedTop><k>Rest</k><env>Env</env><stk>Stk</stk>GeneratedFreshVar130</generatedTop>
+rule <generatedTop><k>`'_;_`(S1, S2) ~> GeneratedFreshVar131</k>GeneratedFreshVar132</generatedTop> => <generatedTop><k>S1 ~> S2 ~> GeneratedFreshVar131</k>GeneratedFreshVar132</generatedTop>
+syntax List ::=
+   List List  [ function(),  hook(List:__),  klabel('_List_),  left()]
+syntax List ::=
+   ".List"  [ function(),  hook(List:.List)]
+syntax List ::=
+   "ListItem" "(" K ")"  [ function(),  hook(List:ListItem),  klabel('ListItem)]
+syntax Bool ::=
+   K "in" List  [ function(),  hook(List:.List),  klabel('_inList_)]
+syntax Int ::=
+   "size" "(" List ")"  [ function(),  hook(Collection:size),  klabel('sizeList)]
+syntax Map ::=
+   Map Map  [ function(),  hook(Map:__),  klabel('_Map_),  left()]
+syntax Map ::=
+   ".Map"  [ function(),  hook(Map:.Map)]
+syntax Map ::=
+   K "|->" K  [ function(),  hook(Map:_|->_),  latex({#1}\mapsto{#2})]
+syntax K ::=
+   Map "[" K "]"  [ function(),  hook(Map:lookup),  klabel(Map:lookup)]
+syntax Map ::=
+   Map "[" K "<-" K "]"  [ function(),  hook(Map:update),  prefer()]
+syntax Map ::=
+   Map "[" K "<-" "undef" "]"  [ function(),  hook(Map:remove)]
+syntax Map ::=
+   Map "-Map" Map  [ function(),  hook(Map:difference),  latex({#1}-_{\it Map}{#2})]
+syntax Map ::=
+   "updateMap" "(" Map "," Map ")"  [ function(),  hook(Map:updateAll),  klabel('updateMap)]
+syntax Set ::=
+   "keys" "(" Map ")"  [ function(),  hook(Map:keys),  klabel('keys)]
+syntax List ::=
+   "values" "(" Map ")"  [ function(),  hook(Map:values),  klabel('values)]
+syntax Int ::=
+   "size" "(" Map ")"  [ function(),  hook(Collection:size),  klabel('sizeMap)]
+syntax Bool ::=
+   Map "<=Map" Map  [ function(),  hook(Map:inclusion)]
+syntax Set ::=
+   Set Set  [ function(),  hook(Set:__),  klabel('_Set_),  left()]
+syntax Set ::=
+   ".Set"  [ function(),  hook(Set:.Set)]
+syntax Set ::=
+   "SetItem" "(" K ")"  [ function(),  hook(Set:SetItem),  klabel('SetItem)]
+syntax Set ::=
+   "intersectSet" "(" Set "," Set ")"  [ function(),  hook(Set:intersection),  klabel('intersectSet)]
+syntax Set ::=
+   Set "-Set" Set  [ function(),  hook(Set:difference),  latex({#1}-_{\it Set}{#2})]
+syntax Bool ::=
+   K "in" Set  [ function(),  hook(Set:in)]
+syntax Bool ::=
+   Set "<=Set" Set  [ function(),  hook(Set:inclusion)]
+syntax Int ::=
+   "size" "(" Set ")"  [ function(),  hook(Collection:size),  klabel('size)]
+syntax Bool ::=
+   "notBool" Bool  [ boolOperation(),  function(),  hook(#BOOL:notBool_),  latex(\neg_{\scriptstyle\it Bool}{#1}),  smtlib(not)]
+ | Bool "andBool" Bool  [ boolOperation(),  function(),  hook(#BOOL:_andBool_),  latex({#1}\wedge_{\scriptstyle\it Bool}{#2}),  left(),  smtlib(and)]
+ | Bool "andThenBool" Bool  [ boolOperation(),  function(),  left(),  smtlib(and)]
+ | Bool "xorBool" Bool  [ boolOperation(),  function(),  hook(#BOOL:_xorBool_),  left(),  smtlib(xor)]
+ | Bool "orBool" Bool  [ boolOperation(),  function(),  hook(#BOOL:_orBool_),  latex({#1}\vee_{\scriptstyle\it Bool}{#2}),  left(),  smtlib(or)]
+ | Bool "orElseBool" Bool  [ boolOperation(),  function(),  left(),  smtlib(or)]
+ | Bool "impliesBool" Bool  [ boolOperation(),  function(),  hook(#BOOL:_impliesBool_),  left(),  smtlib(=>)]
+ | Bool "==Bool" Bool  [ function(),  hook(#BOOL:_==Bool_),  left(),  smtlib(=)]
+ | Bool "=/=Bool" Bool  [ function(),  hook(#BOOL:_=/=Bool_),  left(),  smtlib(distinct)]
+syntax KLabel ::=
+   "'#andBool"  [ predicate()]
+syntax Int ::=
+   "~Int" Int  [ function(),  hook(#INT:~Int_),  latex(\mathop{\sim_{\scriptstyle\it Int}}{#1})]
+ | Int "^Int" Int  [ function(),  hook(#INT:_^Int_),  latex({#1}\mathrel{{\char`\^}_{\!\scriptstyle\it Int}}{#2}),  left()]
+ | Int "*Int" Int  [ function(),  hook(#INT:_*Int_),  latex({#1}\mathrel{\ast_{\scriptstyle\it Int}}{#2}),  left(),  smtlib(*)]
+ | Int "/Int" Int  [ function(),  hook(#INT:_/Int_),  latex({#1}\mathrel{\div_{\scriptstyle\it Int}}{#2}),  left(),  smtlib(div)]
+ | Int "%Int" Int  [ function(),  hook(#INT:_%Int_),  latex({#1}\mathrel{\%_{\scriptstyle\it Int}}{#2}),  left(),  smtlib(mod)]
+ | Int "divInt" Int  [ function(),  hook(#INT:_divInt_),  left(),  smtlib(div)]
+ | Int "modInt" Int  [ function(),  hook(#INT:_modInt_),  left(),  smtlib(mod)]
+ | Int "+Int" Int  [ function(),  hook(#INT:_+Int_),  latex({#1}\mathrel{+_{\scriptstyle\it Int}}{#2}),  left(),  smtlib(+)]
+ | Int "-Int" Int  [ function(),  hook(#INT:_-Int_),  latex({#1}\mathrel{-_{\scriptstyle\it Int}}{#2}),  left(),  smtlib(-)]
+ | Int ">>Int" Int  [ function(),  hook(#INT:_>>Int_),  latex({#1}\mathrel{\gg_{\scriptstyle\it Int}}{#2}),  left()]
+ | Int "<<Int" Int  [ function(),  hook(#INT:_<<Int_),  latex({#1}\mathrel{\ll_{\scriptstyle\it Int}}{#2}),  left()]
+ | Int "&Int" Int  [ function(),  hook(#INT:_&Int_),  latex({#1}\mathrel{\&_{\scriptstyle\it Int}}{#2}),  left()]
+ | Int "xorInt" Int  [ function(),  hook(#INT:_xorInt_),  latex({#1}\mathrel{\oplus_{\scriptstyle\it Int}}{#2}),  left()]
+ | Int "|Int" Int  [ function(),  hook(#INT:_|Int_),  latex({#1}\mathrel{|_{\scriptstyle\it Int}}{#2}),  left()]
+ | "minInt" "(" Int "," Int ")"  [ function(),  hook(#INT:minInt),  smtlib(int_min)]
+ | "maxInt" "(" Int "," Int ")"  [ function(),  hook(#INT:maxInt),  smtlib(int_max)]
+ | "absInt" "(" Int ")"  [ function(),  hook(#INT:absInt),  klabel(absInt),  smtlib(int_abs)]
+syntax Bool ::=
+   Int "<=Int" Int  [ function(),  hook(#INT:_<=Int_),  latex({#1}\mathrel{\leq_{\scriptstyle\it Int}}{#2}),  left(),  smtlib(<=)]
+ | Int "<Int" Int  [ function(),  hook(#INT:_<Int_),  latex({#1}\mathrel{<_{\scriptstyle\it Int}}{#2}),  left(),  smtlib(<)]
+ | Int ">=Int" Int  [ function(),  hook(#INT:_>=Int_),  latex({#1}\mathrel{\geq_{\scriptstyle\it Int}}{#2}),  left(),  smtlib(>=)]
+ | Int ">Int" Int  [ function(),  hook(#INT:_>Int_),  latex({#1}\mathrel{>_{\scriptstyle\it Int}}{#2}),  left(),  smtlib(>)]
+ | Int "==Int" Int  [ function(),  hook(#INT:_==Int_),  latex({#1}\mathrel{{=}{=}_{\scriptstyle\it Int}}{#2}),  left(),  smtlib(=)]
+ | Int "=/=Int" Int  [ function(),  hook(#INT:_=/=Int_),  latex({#1}\mathrel{{=}{/}{=}_{\scriptstyle\it Int}}{#2}),  left(),  smtlib(distinct)]
+ | Int "=Int" Int  [ equality(),  function(),  hook(#INT:_==Int_)]
+ | Int "dividesInt" Int  [ function()]
+syntax Nat
+syntax Int ::=
+   "freshInt" "(" Int ")"  [ freshGenerator(),  function(),  klabel('freshInt)]
+syntax String ::=
+   "Id2String" "(" Id ")"  [ function(),  hook(#CONVERSION:token2string),  klabel(Id2String)]
+syntax Id ::=
+   "String2Id" "(" String ")"  [ function(),  hook(#CONVERSION:string2id),  klabel(String2Id)]
+syntax Id ::=
+   "freshId" "(" Int ")"  [ freshGenerator(),  function(),  klabel('freshId)]
+syntax Int ::=
+   "precisionFloat" "(" Float ")"  [ function(),  hook(#FLOAT:precision),  klabel('precisionFloat)]
+ | "exponentFloat" "(" Float ")"  [ function(),  hook(#FLOAT:exponent),  klabel('exponentFloat)]
+ | "exponentBitsFloat" "(" Float ")"  [ function(),  hook(#FLOAT:exponentBits),  klabel('exponentBitsFloat)]
+syntax Bool ::=
+   "signFloat" "(" Float ")"  [ function(),  hook(#FLOAT:sign),  klabel('signFloat)]
+syntax MInt ::=
+   "significandFloat" "(" Float ")"  [ function(),  hook(#FLOAT:significand),  klabel('significandFloat)]
+syntax Float ::=
+   "--Float" Float  [ function(),  hook(#FLOAT:neg)]
+ | Float "^Float" Float  [ function(),  hook(#FLOAT:pow),  latex({#1}^{#2}),  left()]
+ | Float "*Float" Float  [ function(),  hook(#FLOAT:mul),  latex({#1}\mathrel{\ast_{\scriptstyle\it Float}}{#2}),  left()]
+ | Float "/Float" Float  [ function(),  hook(#FLOAT:div),  latex({#1}\mathrel{\div_{\scriptstyle\it Float}}{#2}),  left()]
+ | Float "%Float" Float  [ function(),  hook(#FLOAT:rem),  latex({#1}\mathrel{\%_{\scriptstyle\it Float}}{#2}),  left()]
+ | Float "+Float" Float  [ function(),  hook(#FLOAT:add),  latex({#1}\mathrel{+_{\scriptstyle\it Float}}{#2}),  left()]
+ | Float "-Float" Float  [ function(),  hook(#FLOAT:sub),  latex({#1}\mathrel{-_{\scriptstyle\it Float}}{#2}),  left()]
+syntax Float ::=
+   "rootFloat" "(" Float "," Int ")"  [ function(),  hook(#FLOAT:root),  klabel('rootFloat)]
+ | "absFloat" "(" Float ")"  [ function(),  hook(#FLOAT:abs),  klabel('absFloat)]
+ | "roundFloat" "(" Float "," Int "," Int ")"  [ function(),  hook(#FLOAT:round),  klabel('roundFloat)]
+ | "floorFloat" "(" Float ")"  [ function(),  hook(#FLOAT:floor),  klabel('floorFloat)]
+ | "ceilFloat" "(" Float ")"  [ function(),  hook(#FLOAT:ceil),  klabel('ceilFloat)]
+ | "expFloat" "(" Float ")"  [ function(),  hook(#FLOAT:exp),  klabel('expFloat)]
+ | "logFloat" "(" Float ")"  [ function(),  hook(#FLOAT:log),  klabel('logFloat)]
+ | "sinFloat" "(" Float ")"  [ function(),  hook(#FLOAT:sin),  klabel('sinFloat)]
+ | "cosFloat" "(" Float ")"  [ function(),  hook(#FLOAT:cos),  klabel('cosFloat)]
+ | "tanFloat" "(" Float ")"  [ function(),  hook(#FLOAT:tan),  klabel('tanFloat)]
+ | "asinFloat" "(" Float ")"  [ function(),  hook(#FLOAT:asin),  klabel('asinFloat)]
+ | "acosFloat" "(" Float ")"  [ function(),  hook(#FLOAT:acos),  klabel('acosFloat)]
+ | "atanFloat" "(" Float ")"  [ function(),  hook(#FLOAT:atan),  klabel('atanFloat)]
+ | "atan2Float" "(" Float "," Float ")"  [ function(),  hook(#FLOAT:atan2),  klabel('atan2Float)]
+ | "maxFloat" "(" Float "," Float ")"  [ function(),  hook(#FLOAT:max),  klabel('maxFloat)]
+ | "minFloat" "(" Float "," Float ")"  [ function(),  hook(#FLOAT:min),  klabel('minFloat)]
+syntax Bool ::=
+   Float "<=Float" Float  [ function(),  hook(#FLOAT:le),  latex({#1}\mathrel{\leq_{\scriptstyle\it Float}}{#2}),  left()]
+ | Float "<Float" Float  [ function(),  hook(#FLOAT:lt),  latex({#1}\mathrel{<_{\scriptstyle\it Float}}{#2}),  left()]
+ | Float ">=Float" Float  [ function(),  hook(#FLOAT:ge),  latex({#1}\mathrel{\geq_{\scriptstyle\it Float}}{#2}),  left()]
+ | Float ">Float" Float  [ function(),  hook(#FLOAT:gt),  latex({#1}\mathrel{>_{\scriptstyle\it Float}}{#2}),  left()]
+ | Float "==Float" Float  [ function(),  hook(#FLOAT:eq),  latex({#1}\mathrel{==_{\scriptstyle\it Float}}{#2}),  left()]
+ | Float "=/=Float" Float  [ function(),  latex({#1}\mathrel{\neq_{\scriptstyle\it Float}}{#2}),  left()]
+syntax Float ::=
+   "Int2Float" "(" Int "," Int "," Int ")"  [ function(),  hook(#CONVERSION:int2Float),  klabel(Int2Float),  latex({\\it{}Int2Float})]
+syntax Int ::=
+   "Float2Int" "(" Float ")"  [ function(),  hook(#CONVERSION:float2Int),  klabel(Float2Int),  latex({\\it{}Float2Int})]
+syntax String ::=
+   String "+String" String  [ function(),  hook(#STRING:_+String_),  latex({#1}+_{\scriptstyle\it String}{#2}),  left()]
+syntax Bool ::=
+   String "==String" String  [ function(),  hook(#STRING:_==String_),  left()]
+syntax Int ::=
+   "lengthString" "(" String ")"  [ function(),  hook(#STRING:lengthString),  klabel(lengthString)]
+syntax String ::=
+   "chrChar" "(" Int ")"  [ function(),  hook(#STRING:chrChar),  klabel(chrChar)]
+syntax Int ::=
+   "ordChar" "(" String ")"  [ function(),  hook(#STRING:ordChar),  klabel(ordChar)]
+syntax String ::=
+   "substrString" "(" String "," Int "," Int ")"  [ function(),  hook(#STRING:substrString),  klabel(substrString)]
+syntax Int ::=
+   "findString" "(" String "," String "," Int ")"  [ function(),  hook(#STRING:findString),  klabel(findString)]
+syntax Int ::=
+   "rfindString" "(" String "," String "," Int ")"  [ function(),  hook(#STRING:rfindString),  klabel(rfindString)]
+syntax Int ::=
+   "findChar" "(" String "," String "," Int ")"  [ function(),  hook(#STRING:findChar),  klabel(findChar)]
+syntax Int ::=
+   "rfindChar" "(" String "," String "," Int ")"  [ function(),  hook(#STRING:rfindChar),  klabel(rfindChar)]
+syntax String ::=
+   "Float2String" "(" Float ")"  [ function(),  hook(#CONVERSION:float2string),  klabel(Float2String)]
+syntax Float ::=
+   "String2Float" "(" String ")"  [ function(),  hook(#CONVERSION:string2float),  klabel(String2Float)]
+syntax Int ::=
+   "String2Int" "(" String ")"  [ function(),  hook(#CONVERSION:string2int),  klabel(String2Int)]
+syntax String ::=
+   "Int2String" "(" Int ")"  [ function(),  hook(#CONVERSION:int2string),  klabel(Int2String)]
+syntax String ::=
+   "Base2String" "(" Int "," Int ")"  [ function(),  hook(#CONVERSION:base2string),  klabel(Base2String)]
+syntax Int ::=
+   "String2Base" "(" String "," Int ")"  [ function(),  hook(#CONVERSION:string2base),  klabel(String2Base)]
+syntax String ::=
+   "KLabel2String" "(" KLabel ")"  [ function(),  klabel('KLabel2String)]
+syntax KLabel ::=
+   "String2KLabel" "(" String ")"  [ function(),  klabel('String2KLabel)]
+syntax String ::=
+   "replaceAll" "(" String "," String "," String ")"  [ function(),  hook(#STRING:replaceAll)]
+syntax String ::=
+   "replace" "(" String "," String "," String "," Int ")"  [ function(),  hook(#STRING:replace)]
+syntax String ::=
+   "replaceFirst" "(" String "," String "," String ")"  [ function(),  hook(#STRING:replaceFirst)]
+syntax Int ::=
+   "countAllOccurences" "(" String "," String ")"  [ function(),  hook(#STRING:countAllOccurences)]
+syntax String ::=
+   "trim" "(" String ")"  [ function()]
+syntax String ::=
+   "ltrim" "(" String ")"  [ function()]
+syntax String ::=
+   "rtrim" "(" String ")"  [ function()]
+syntax Bool ::=
+   String "=/=String" String  [ function(),  hook(#STRING:_=/=String_),  left()]
+syntax Bool ::=
+   String "<String" String  [ function(),  hook(#STRING:_<String_)]
+ | String "<=String" String  [ function(),  hook(#STRING:_<=String_)]
+ | String ">String" String  [ function(),  hook(#STRING:_>String_)]
+ | String ">=String" String  [ function(),  hook(#STRING:_>=String_)]
+syntax String ::=
+   "categoryChar" "(" String ")"  [ function(),  hook(#STRING:categoryChar),  klabel('categoryChar)]
+ | "directionalityChar" "(" String ")"  [ function(),  hook(#STRING:directionalityChar),  klabel('directionalityChar)]
+syntax Char
+syntax String ::=
+   "Char2String" "(" Char ")"  [ function()]
+syntax Char ::=
+   "String2Char" "(" String ")"  [ function()]
+syntax Bool ::=
+   "#isWhiteSpace" "(" String ")"  [ function(),  klabel(#isWhiteSpace)]
+syntax Bool ::=
+   "#isDigit" "(" String ")"  [ function(),  klabel(#isDigit)]
+syntax KItem ::=
+   "#parseToken" "(" String "," String ")"  [ function(),  hook(#CONVERSION:string2token),  klabel(#parseToken)]
+syntax String ::=
+   "#tokenToString" "(" K ")"  [ function(),  hook(#CONVERSION:token2string),  klabel(#tokenToString)]
+syntax TCPAnswer ::=
+   String 
+ | TCPError 
+syntax TCPError ::=
+   "#EOF" 
+ | "#tcpError" "(" String ")" 
+ | "#noparse" 
+ | "#ENOENT" 
+ | "#ENOTDIR" 
+ | "#EACCES" 
+ | "#ELOOP" 
+ | "#ENAMETOOLONG" 
+ | "#EBADF" 
+ | "#ESPIPE" 
+ | "#EISDIR" 
+ | "#EINVAL" 
+syntax TCPAnswer ::=
+   "#tcpRequest" "(" String ")"  [ function(),  klabel(#tcpRequest)]
+syntax TCPAnswer ::=
+   "#checkTCPAnswer" "(" String ")"  [ function(),  klabel(#checkTCPAnswer)]
+syntax String ::=
+   "##tcpRequest" "(" String ")"  [ function(),  hook(#TCP:#tcpRequest),  klabel(##tcpRequest)]
+ | "#retrieveTCPError" "(" String ")"  [ function(),  hook(#TCP:#retrieveTCPError),  klabel(#retrieveTCPError)]
+syntax Bool ::=
+   "#isTCPError" "(" String ")"  [ function(),  hook(#TCP:#isTCPError),  klabel(#isTCPError)]
+syntax Bool ::=
+   K "==K" K  [ equalEqualK(),  function(),  hook(#K-EQUAL:_==K_),  latex({#1}\mathrel{=_K}{#2}),  left(),  smtlib(=)]
+ | K "=/=K" K  [ function(),  hook(#K-EQUAL:_=/=K_),  latex({#1}\mathrel{\neq_K}{#2}),  left(),  notEqualEqualK(),  smtlib(distinct)]
+syntax K ::=
+   "#if" Bool "#then" K "#else" K "#fi"  [ function(),  hook(KEqual:ite)]
+syntax Bool ::=
+   KList "==KList" KList  [ function(),  hook(KEqual:_==KList_)]
+syntax KItem ::=
+   "dummy" "(" KList ")"  [ klabel('dummy)]
+syntax Bool ::=
+   KList "=/=KList" KList  [ function(),  hook(KEqual:_=/=KList_)]
+syntax Bool ::=
+   KLabel "==KLabel" KLabel  [ function(),  hook(KEqual:_==KLabel_),  latex({#1}\mathrel{=_{\it KLabel}}{#2})]
+syntax Bool ::=
+   KLabel "=/=KLabel" KLabel  [ function(),  hook(KEqual:_=/=KLabel_),  latex({#1}\mathrel{\neq_{\it KLabel}}{#2})]
+syntax Bool ::=
+   K "=K" K  [ function()]
+ | List "=List" List  [ function()]
+ | Set "=Set" Set  [ function()]
+ | Bag "=Bag" Bag  [ function()]
+ | Map "=Map" Map  [ function()]
+ | KList "=KList" KList  [ function()]
+ | KLabel "=KLabel" KLabel  [ function()]
+syntax Bool ::=
+   Bag "==Bag" Bag  [ equalEqualK(),  function(),  hook(#K-EQUAL:_==K_),  latex({#1}\mathrel{=_K}{#2}),  left()]
+ | Bag "=/=Bag" Bag  [ function(),  hook(#K-EQUAL:_=/=K_),  latex({#1}\mathrel{\neq_K}{#2}),  left(),  notEqualEqualK()]
+syntax Int ::=
+   "randomRandom" "(" Int ")"  [ function(),  hook(#RANDOM:randomRandom),  klabel(randomRandom)]
+syntax Int ::=
+   "#distinctCounter" "(" Int ")"  [ function(),  hook(#COUNTER:distinctCounter),  klabel('#distinctCounter)]
+ | "#counter"  [ function()]
+syntax KItem ::=
+   "fresh" "(" String ")"  [ function(),  hook(#FRESH:fresh),  klabel('fresh)]
+syntax KItem
+syntax KItem ::=
+   KResult 
+syntax Bool ::=
+   "isKResult" "(" KItem ")"  [ function(),  klabel(isKResult)]
+syntax KLabel ::=
+   "getKLabel" K  [ function(),  hook(MetaK:getKLabel_)]
+syntax KLabel ::=
+   "#freezer" K 
+syntax KLabel ::=
+   "heat" 
+ | "heated" 
+ | "redex" 
+ | "cool" 
+syntax Bool ::=
+   K "inKList" KList  [ function()]
+syntax Bool ::=
+   K "#inKList" KList  [ function()]
+syntax KLabel ::=
+   "#token" 
+syntax Bool ::=
+   "isToken" "(" K ")"  [ hook(#PREDICATE:isToken),  klabel('isToken),  predicate()]
+syntax Bool ::=
+   "isBuiltin" "(" K ")"  [ hook(#PREDICATE:isBuiltin),  klabel(isBuiltin),  predicate(),  prefixlabel(isBuiltin)]
+syntax KItem ::=
+   "#open" "(" String ")"  [ function()]
+ | "#open" "(" String "," String ")"  [ function(),  hook(#IO:#open)]
+ | "#tell" "(" Int ")"  [ function(),  hook(#IO:#tell)]
+ | "#getc" "(" Int ")"  [ function(),  hook(#IO:#getc)]
+ | "#read" "(" Int "," Int ")"  [ function(),  hook(#IO:#read)]
+syntax K ::=
+   "#close" "(" Int ")"  [ function(),  hook(#IO:#close)]
+ | "#seek" "(" Int "," Int ")"  [ function(),  hook(#IO:#seek)]
+ | "#putc" "(" Int "," Int ")"  [ function(),  hook(#IO:#putc)]
+ | "#write" "(" Int "," String ")"  [ function(),  hook(#IO:#write)]
+syntax KItem ::=
+   "#ioError" "(" String ")" 
+syntax KList ::=
+   "#stat" "(" String ")"  [ function(),  hook(#IO:#stat)]
+ | "#lstat" "(" String ")"  [ function(),  hook(#IO:#lstat)]
+ | "#opendir" "(" String ")"  [ function(),  hook(#IO:#opendir)]
+syntax KItem ::=
+   "#parse" "(" String "," String ")"  [ function(),  hook(#K-PARSER:#parse),  klabel(#parse)]
+syntax K ::=
+   "String2DotK" "(" TCPAnswer ")"  [ function(),  klabel('String2DotK)]
+syntax Bool ::=
+   "String2Bool" "(" TCPAnswer ")"  [ function(),  klabel('String2Bool)]
+syntax Int ::=
+   "#stdin"  [ function()]
+ | "#stdout"  [ function()]
+ | "#stderr"  [ function()]
+syntax K ::=
+   "#string2Int" "(" K ")"  [ function(),  klabel(#string2Int)]
+syntax KList ::=
+   "#string2klist" "(" String ")"  [ function(),  klabel('#string2klist)]
+syntax KList ::=
+   "#statTypes" "(" KList ")"  [ function(),  klabel('#statTypes)]
+syntax Stream ::=
+   "#parseInput" "(" String "," String ")"  [ klabel('#parseInput)]
+syntax Stream ::=
+   "#buffer" "(" K ")"  [ klabel('#buffer)]
+syntax Stream ::=
+   "#istream" "(" Int ")"  [ klabel('#istream)]
+ | "#ostream" "(" Int ")"  [ klabel('#ostream)]
+syntax Stream ::=
+   "#noIO" 
+syntax K ::=
+   "String2K" "(" String ")"  [ function(),  hook(#K-PARSER:string2k),  klabel('String2K)]
+syntax Bag ::=
+   "String2Bag" "(" String ")"  [ function(),  hook(#K-PARSER:string2bag),  klabel('String2Bag)]
+syntax String ::=
+   "K2String" "(" K ")"  [ function(),  hook(#K-PRINTER:k2string),  klabel('K2String)]
+ | "Bag2String" "(" Bag ")"  [ function(),  hook(#K-PRINTER:bag2string),  klabel('Bag2String)]
+syntax #Bool ::=
+   "true" 
+syntax #Bool ::=
+   "false" 
+syntax Bool ::=
+   #Bool 
+syntax #Int
+syntax Int ::=
+   #Int 
+syntax Id
+syntax #Float
+syntax #Float
+syntax #Float
+syntax #Float ::=
+   "NaN" 
+ | "Infinity" 
+syntax Float ::=
+   #Float 
+syntax #String
+syntax String ::=
+   #String 
+configuration <generatedTop><k>$PGM:Pgm</k><env>`'.Map`()</env><stk>`.Frames`()</stk><heap>`'.Map`()</heap><funs>`'.Map`()</funs><mark>#token{"#Int","0"}</mark></generatedTop>
+rule <generatedTop><k>`'_or_`(GeneratedFreshVar43, GeneratedFreshVar1) ~> GeneratedFreshVar133</k>GeneratedFreshVar134</generatedTop> => <generatedTop><k>GeneratedFreshVar43 ~> #freezer(`'_or_`(HOLE, GeneratedFreshVar1)) ~> GeneratedFreshVar133</k>GeneratedFreshVar134</generatedTop> when `'_=/=K_`(`isKResult`(GeneratedFreshVar43),#token{"#Bool","true"})
+rule <generatedTop><k>GeneratedFreshVar43 ~> #freezer(`'_or_`(HOLE, GeneratedFreshVar1)) ~> GeneratedFreshVar135</k>GeneratedFreshVar136</generatedTop> => <generatedTop><k>`'_or_`(GeneratedFreshVar43, GeneratedFreshVar1) ~> GeneratedFreshVar135</k>GeneratedFreshVar136</generatedTop> when `isKResult`(GeneratedFreshVar43)
+rule <generatedTop><k>`'return_`(GeneratedFreshVar44) ~> GeneratedFreshVar137</k>GeneratedFreshVar138</generatedTop> => <generatedTop><k>GeneratedFreshVar44 ~> #freezer(`'return_`(HOLE)) ~> GeneratedFreshVar137</k>GeneratedFreshVar138</generatedTop> when `'_=/=K_`(`isKResult`(GeneratedFreshVar44),#token{"#Bool","true"})
+rule <generatedTop><k>GeneratedFreshVar44 ~> #freezer(`'return_`(HOLE)) ~> GeneratedFreshVar139</k>GeneratedFreshVar140</generatedTop> => <generatedTop><k>`'return_`(GeneratedFreshVar44) ~> GeneratedFreshVar139</k>GeneratedFreshVar140</generatedTop> when `isKResult`(GeneratedFreshVar44)
+rule <generatedTop><k>`'*_:=_`(GeneratedFreshVar45, GeneratedFreshVar4) ~> GeneratedFreshVar141</k>GeneratedFreshVar142</generatedTop> => <generatedTop><k>GeneratedFreshVar45 ~> #freezer(`'*_:=_`(HOLE, GeneratedFreshVar4)) ~> GeneratedFreshVar141</k>GeneratedFreshVar142</generatedTop> when `'_=/=K_`(`isKResult`(GeneratedFreshVar45),#token{"#Bool","true"})
+rule <generatedTop><k>GeneratedFreshVar45 ~> #freezer(`'*_:=_`(HOLE, GeneratedFreshVar4)) ~> GeneratedFreshVar143</k>GeneratedFreshVar144</generatedTop> => <generatedTop><k>`'*_:=_`(GeneratedFreshVar45, GeneratedFreshVar4) ~> GeneratedFreshVar143</k>GeneratedFreshVar144</generatedTop> when `isKResult`(GeneratedFreshVar45)
+rule <generatedTop><k>`'*_:=_`(GeneratedFreshVar5, GeneratedFreshVar46) ~> GeneratedFreshVar145</k>GeneratedFreshVar146</generatedTop> => <generatedTop><k>GeneratedFreshVar46 ~> #freezer(`'*_:=_`(GeneratedFreshVar5, HOLE)) ~> GeneratedFreshVar145</k>GeneratedFreshVar146</generatedTop> when `'_=/=K_`(`isKResult`(GeneratedFreshVar46),#token{"#Bool","true"})
+rule <generatedTop><k>GeneratedFreshVar46 ~> #freezer(`'*_:=_`(GeneratedFreshVar5, HOLE)) ~> GeneratedFreshVar147</k>GeneratedFreshVar148</generatedTop> => <generatedTop><k>`'*_:=_`(GeneratedFreshVar5, GeneratedFreshVar46) ~> GeneratedFreshVar147</k>GeneratedFreshVar148</generatedTop> when `isKResult`(GeneratedFreshVar46)
+rule <generatedTop><k>`'_*_`(GeneratedFreshVar47, GeneratedFreshVar8) ~> GeneratedFreshVar149</k>GeneratedFreshVar150</generatedTop> => <generatedTop><k>GeneratedFreshVar47 ~> #freezer(`'_*_`(HOLE, GeneratedFreshVar8)) ~> GeneratedFreshVar149</k>GeneratedFreshVar150</generatedTop> when `'_=/=K_`(`isKResult`(GeneratedFreshVar47),#token{"#Bool","true"})
+rule <generatedTop><k>GeneratedFreshVar47 ~> #freezer(`'_*_`(HOLE, GeneratedFreshVar8)) ~> GeneratedFreshVar151</k>GeneratedFreshVar152</generatedTop> => <generatedTop><k>`'_*_`(GeneratedFreshVar47, GeneratedFreshVar8) ~> GeneratedFreshVar151</k>GeneratedFreshVar152</generatedTop> when `isKResult`(GeneratedFreshVar47)
+rule <generatedTop><k>`'_*_`(GeneratedFreshVar9, GeneratedFreshVar48) ~> GeneratedFreshVar153</k>GeneratedFreshVar154</generatedTop> => <generatedTop><k>GeneratedFreshVar48 ~> #freezer(`'_*_`(GeneratedFreshVar9, HOLE)) ~> GeneratedFreshVar153</k>GeneratedFreshVar154</generatedTop> when `'_=/=K_`(`isKResult`(GeneratedFreshVar48),#token{"#Bool","true"})
+rule <generatedTop><k>GeneratedFreshVar48 ~> #freezer(`'_*_`(GeneratedFreshVar9, HOLE)) ~> GeneratedFreshVar155</k>GeneratedFreshVar156</generatedTop> => <generatedTop><k>`'_*_`(GeneratedFreshVar9, GeneratedFreshVar48) ~> GeneratedFreshVar155</k>GeneratedFreshVar156</generatedTop> when `isKResult`(GeneratedFreshVar48)
+rule <generatedTop><k>`'_and_`(GeneratedFreshVar49, GeneratedFreshVar12) ~> GeneratedFreshVar157</k>GeneratedFreshVar158</generatedTop> => <generatedTop><k>GeneratedFreshVar49 ~> #freezer(`'_and_`(HOLE, GeneratedFreshVar12)) ~> GeneratedFreshVar157</k>GeneratedFreshVar158</generatedTop> when `'_=/=K_`(`isKResult`(GeneratedFreshVar49),#token{"#Bool","true"})
+rule <generatedTop><k>GeneratedFreshVar49 ~> #freezer(`'_and_`(HOLE, GeneratedFreshVar12)) ~> GeneratedFreshVar159</k>GeneratedFreshVar160</generatedTop> => <generatedTop><k>`'_and_`(GeneratedFreshVar49, GeneratedFreshVar12) ~> GeneratedFreshVar159</k>GeneratedFreshVar160</generatedTop> when `isKResult`(GeneratedFreshVar49)
+rule <generatedTop><k>`'-_`(GeneratedFreshVar50) ~> GeneratedFreshVar161</k>GeneratedFreshVar162</generatedTop> => <generatedTop><k>GeneratedFreshVar50 ~> #freezer(`'-_`(HOLE)) ~> GeneratedFreshVar161</k>GeneratedFreshVar162</generatedTop> when `'_=/=K_`(`isKResult`(GeneratedFreshVar50),#token{"#Bool","true"})
+rule <generatedTop><k>GeneratedFreshVar50 ~> #freezer(`'-_`(HOLE)) ~> GeneratedFreshVar163</k>GeneratedFreshVar164</generatedTop> => <generatedTop><k>`'-_`(GeneratedFreshVar50) ~> GeneratedFreshVar163</k>GeneratedFreshVar164</generatedTop> when `isKResult`(GeneratedFreshVar50)
+rule <generatedTop><k>`'dealloc_`(GeneratedFreshVar51) ~> GeneratedFreshVar165</k>GeneratedFreshVar166</generatedTop> => <generatedTop><k>GeneratedFreshVar51 ~> #freezer(`'dealloc_`(HOLE)) ~> GeneratedFreshVar165</k>GeneratedFreshVar166</generatedTop> when `'_=/=K_`(`isKResult`(GeneratedFreshVar51),#token{"#Bool","true"})
+rule <generatedTop><k>GeneratedFreshVar51 ~> #freezer(`'dealloc_`(HOLE)) ~> GeneratedFreshVar167</k>GeneratedFreshVar168</generatedTop> => <generatedTop><k>`'dealloc_`(GeneratedFreshVar51) ~> GeneratedFreshVar167</k>GeneratedFreshVar168</generatedTop> when `isKResult`(GeneratedFreshVar51)
+rule <generatedTop><k>`'_/_`(GeneratedFreshVar52, GeneratedFreshVar16) ~> GeneratedFreshVar169</k>GeneratedFreshVar170</generatedTop> => <generatedTop><k>GeneratedFreshVar52 ~> #freezer(`'_/_`(HOLE, GeneratedFreshVar16)) ~> GeneratedFreshVar169</k>GeneratedFreshVar170</generatedTop> when `'_=/=K_`(`isKResult`(GeneratedFreshVar52),#token{"#Bool","true"})
+rule <generatedTop><k>GeneratedFreshVar52 ~> #freezer(`'_/_`(HOLE, GeneratedFreshVar16)) ~> GeneratedFreshVar171</k>GeneratedFreshVar172</generatedTop> => <generatedTop><k>`'_/_`(GeneratedFreshVar52, GeneratedFreshVar16) ~> GeneratedFreshVar171</k>GeneratedFreshVar172</generatedTop> when `isKResult`(GeneratedFreshVar52)
+rule <generatedTop><k>`'_/_`(GeneratedFreshVar17, GeneratedFreshVar53) ~> GeneratedFreshVar173</k>GeneratedFreshVar174</generatedTop> => <generatedTop><k>GeneratedFreshVar53 ~> #freezer(`'_/_`(GeneratedFreshVar17, HOLE)) ~> GeneratedFreshVar173</k>GeneratedFreshVar174</generatedTop> when `'_=/=K_`(`isKResult`(GeneratedFreshVar53),#token{"#Bool","true"})
+rule <generatedTop><k>GeneratedFreshVar53 ~> #freezer(`'_/_`(GeneratedFreshVar17, HOLE)) ~> GeneratedFreshVar175</k>GeneratedFreshVar176</generatedTop> => <generatedTop><k>`'_/_`(GeneratedFreshVar17, GeneratedFreshVar53) ~> GeneratedFreshVar175</k>GeneratedFreshVar176</generatedTop> when `isKResult`(GeneratedFreshVar53)
+rule <generatedTop><k>`'_+_`(GeneratedFreshVar54, GeneratedFreshVar20) ~> GeneratedFreshVar177</k>GeneratedFreshVar178</generatedTop> => <generatedTop><k>GeneratedFreshVar54 ~> #freezer(`'_+_`(HOLE, GeneratedFreshVar20)) ~> GeneratedFreshVar177</k>GeneratedFreshVar178</generatedTop> when `'_=/=K_`(`isKResult`(GeneratedFreshVar54),#token{"#Bool","true"})
+rule <generatedTop><k>GeneratedFreshVar54 ~> #freezer(`'_+_`(HOLE, GeneratedFreshVar20)) ~> GeneratedFreshVar179</k>GeneratedFreshVar180</generatedTop> => <generatedTop><k>`'_+_`(GeneratedFreshVar54, GeneratedFreshVar20) ~> GeneratedFreshVar179</k>GeneratedFreshVar180</generatedTop> when `isKResult`(GeneratedFreshVar54)
+rule <generatedTop><k>`'_+_`(GeneratedFreshVar21, GeneratedFreshVar55) ~> GeneratedFreshVar181</k>GeneratedFreshVar182</generatedTop> => <generatedTop><k>GeneratedFreshVar55 ~> #freezer(`'_+_`(GeneratedFreshVar21, HOLE)) ~> GeneratedFreshVar181</k>GeneratedFreshVar182</generatedTop> when `'_=/=K_`(`isKResult`(GeneratedFreshVar55),#token{"#Bool","true"})
+rule <generatedTop><k>GeneratedFreshVar55 ~> #freezer(`'_+_`(GeneratedFreshVar21, HOLE)) ~> GeneratedFreshVar183</k>GeneratedFreshVar184</generatedTop> => <generatedTop><k>`'_+_`(GeneratedFreshVar21, GeneratedFreshVar55) ~> GeneratedFreshVar183</k>GeneratedFreshVar184</generatedTop> when `isKResult`(GeneratedFreshVar55)
+rule <generatedTop><k>`'_._`(GeneratedFreshVar56, GeneratedFreshVar24) ~> GeneratedFreshVar185</k>GeneratedFreshVar186</generatedTop> => <generatedTop><k>GeneratedFreshVar56 ~> #freezer(`'_._`(HOLE, GeneratedFreshVar24)) ~> GeneratedFreshVar185</k>GeneratedFreshVar186</generatedTop> when `'_=/=K_`(`isKResult`(GeneratedFreshVar56),#token{"#Bool","true"})
+rule <generatedTop><k>GeneratedFreshVar56 ~> #freezer(`'_._`(HOLE, GeneratedFreshVar24)) ~> GeneratedFreshVar187</k>GeneratedFreshVar188</generatedTop> => <generatedTop><k>`'_._`(GeneratedFreshVar56, GeneratedFreshVar24) ~> GeneratedFreshVar187</k>GeneratedFreshVar188</generatedTop> when `isKResult`(GeneratedFreshVar56)
+rule <generatedTop><k>`'if_then{_}else{_}`(GeneratedFreshVar57, GeneratedFreshVar26, GeneratedFreshVar27) ~> GeneratedFreshVar189</k>GeneratedFreshVar190</generatedTop> => <generatedTop><k>GeneratedFreshVar57 ~> #freezer(`'if_then{_}else{_}`(HOLE, GeneratedFreshVar26, GeneratedFreshVar27)) ~> GeneratedFreshVar189</k>GeneratedFreshVar190</generatedTop> when `'_=/=K_`(`isKResult`(GeneratedFreshVar57),#token{"#Bool","true"})
+rule <generatedTop><k>GeneratedFreshVar57 ~> #freezer(`'if_then{_}else{_}`(HOLE, GeneratedFreshVar26, GeneratedFreshVar27)) ~> GeneratedFreshVar191</k>GeneratedFreshVar192</generatedTop> => <generatedTop><k>`'if_then{_}else{_}`(GeneratedFreshVar57, GeneratedFreshVar26, GeneratedFreshVar27) ~> GeneratedFreshVar191</k>GeneratedFreshVar192</generatedTop> when `isKResult`(GeneratedFreshVar57)
+rule <generatedTop><k>`'_<_`(GeneratedFreshVar58, GeneratedFreshVar29) ~> GeneratedFreshVar193</k>GeneratedFreshVar194</generatedTop> => <generatedTop><k>GeneratedFreshVar58 ~> #freezer(`'_<_`(HOLE, GeneratedFreshVar29)) ~> GeneratedFreshVar193</k>GeneratedFreshVar194</generatedTop> when `'_=/=K_`(`isKResult`(GeneratedFreshVar58),#token{"#Bool","true"})
+rule <generatedTop><k>GeneratedFreshVar58 ~> #freezer(`'_<_`(HOLE, GeneratedFreshVar29)) ~> GeneratedFreshVar195</k>GeneratedFreshVar196</generatedTop> => <generatedTop><k>`'_<_`(GeneratedFreshVar58, GeneratedFreshVar29) ~> GeneratedFreshVar195</k>GeneratedFreshVar196</generatedTop> when `isKResult`(GeneratedFreshVar58)
+rule <generatedTop><k>`'_<_`(GeneratedFreshVar30, GeneratedFreshVar59) ~> GeneratedFreshVar197</k>GeneratedFreshVar198</generatedTop> => <generatedTop><k>GeneratedFreshVar59 ~> #freezer(`'_<_`(GeneratedFreshVar30, HOLE)) ~> GeneratedFreshVar197</k>GeneratedFreshVar198</generatedTop> when `'_=/=K_`(`isKResult`(GeneratedFreshVar59),#token{"#Bool","true"})
+rule <generatedTop><k>GeneratedFreshVar59 ~> #freezer(`'_<_`(GeneratedFreshVar30, HOLE)) ~> GeneratedFreshVar199</k>GeneratedFreshVar200</generatedTop> => <generatedTop><k>`'_<_`(GeneratedFreshVar30, GeneratedFreshVar59) ~> GeneratedFreshVar199</k>GeneratedFreshVar200</generatedTop> when `isKResult`(GeneratedFreshVar59)
+rule <generatedTop><k>`'not_`(GeneratedFreshVar60) ~> GeneratedFreshVar201</k>GeneratedFreshVar202</generatedTop> => <generatedTop><k>GeneratedFreshVar60 ~> #freezer(`'not_`(HOLE)) ~> GeneratedFreshVar201</k>GeneratedFreshVar202</generatedTop> when `'_=/=K_`(`isKResult`(GeneratedFreshVar60),#token{"#Bool","true"})
+rule <generatedTop><k>GeneratedFreshVar60 ~> #freezer(`'not_`(HOLE)) ~> GeneratedFreshVar203</k>GeneratedFreshVar204</generatedTop> => <generatedTop><k>`'not_`(GeneratedFreshVar60) ~> GeneratedFreshVar203</k>GeneratedFreshVar204</generatedTop> when `isKResult`(GeneratedFreshVar60)
+rule <generatedTop><k>`'_<=_`(GeneratedFreshVar61, GeneratedFreshVar34) ~> GeneratedFreshVar205</k>GeneratedFreshVar206</generatedTop> => <generatedTop><k>GeneratedFreshVar61 ~> #freezer(`'_<=_`(HOLE, GeneratedFreshVar34)) ~> GeneratedFreshVar205</k>GeneratedFreshVar206</generatedTop> when `'_=/=K_`(`isKResult`(GeneratedFreshVar61),#token{"#Bool","true"})
+rule <generatedTop><k>GeneratedFreshVar61 ~> #freezer(`'_<=_`(HOLE, GeneratedFreshVar34)) ~> GeneratedFreshVar207</k>GeneratedFreshVar208</generatedTop> => <generatedTop><k>`'_<=_`(GeneratedFreshVar61, GeneratedFreshVar34) ~> GeneratedFreshVar207</k>GeneratedFreshVar208</generatedTop> when `isKResult`(GeneratedFreshVar61)
+rule <generatedTop><k>`'_<=_`(GeneratedFreshVar35, GeneratedFreshVar62) ~> GeneratedFreshVar209</k>GeneratedFreshVar210</generatedTop> => <generatedTop><k>GeneratedFreshVar62 ~> #freezer(`'_<=_`(GeneratedFreshVar35, HOLE)) ~> GeneratedFreshVar209</k>GeneratedFreshVar210</generatedTop> when `'_=/=K_`(`isKResult`(GeneratedFreshVar62),#token{"#Bool","true"})
+rule <generatedTop><k>GeneratedFreshVar62 ~> #freezer(`'_<=_`(GeneratedFreshVar35, HOLE)) ~> GeneratedFreshVar211</k>GeneratedFreshVar212</generatedTop> => <generatedTop><k>`'_<=_`(GeneratedFreshVar35, GeneratedFreshVar62) ~> GeneratedFreshVar211</k>GeneratedFreshVar212</generatedTop> when `isKResult`(GeneratedFreshVar62)
+rule <generatedTop><k>`'_-_`(GeneratedFreshVar63, GeneratedFreshVar38) ~> GeneratedFreshVar213</k>GeneratedFreshVar214</generatedTop> => <generatedTop><k>GeneratedFreshVar63 ~> #freezer(`'_-_`(HOLE, GeneratedFreshVar38)) ~> GeneratedFreshVar213</k>GeneratedFreshVar214</generatedTop> when `'_=/=K_`(`isKResult`(GeneratedFreshVar63),#token{"#Bool","true"})
+rule <generatedTop><k>GeneratedFreshVar63 ~> #freezer(`'_-_`(HOLE, GeneratedFreshVar38)) ~> GeneratedFreshVar215</k>GeneratedFreshVar216</generatedTop> => <generatedTop><k>`'_-_`(GeneratedFreshVar63, GeneratedFreshVar38) ~> GeneratedFreshVar215</k>GeneratedFreshVar216</generatedTop> when `isKResult`(GeneratedFreshVar63)
+rule <generatedTop><k>`'_-_`(GeneratedFreshVar39, GeneratedFreshVar64) ~> GeneratedFreshVar217</k>GeneratedFreshVar218</generatedTop> => <generatedTop><k>GeneratedFreshVar64 ~> #freezer(`'_-_`(GeneratedFreshVar39, HOLE)) ~> GeneratedFreshVar217</k>GeneratedFreshVar218</generatedTop> when `'_=/=K_`(`isKResult`(GeneratedFreshVar64),#token{"#Bool","true"})
+rule <generatedTop><k>GeneratedFreshVar64 ~> #freezer(`'_-_`(GeneratedFreshVar39, HOLE)) ~> GeneratedFreshVar219</k>GeneratedFreshVar220</generatedTop> => <generatedTop><k>`'_-_`(GeneratedFreshVar39, GeneratedFreshVar64) ~> GeneratedFreshVar219</k>GeneratedFreshVar220</generatedTop> when `isKResult`(GeneratedFreshVar64)
+rule <generatedTop><k>`'_:=_`(GeneratedFreshVar41, GeneratedFreshVar65) ~> GeneratedFreshVar221</k>GeneratedFreshVar222</generatedTop> => <generatedTop><k>GeneratedFreshVar65 ~> #freezer(`'_:=_`(GeneratedFreshVar41, HOLE)) ~> GeneratedFreshVar221</k>GeneratedFreshVar222</generatedTop> when `'_=/=K_`(`isKResult`(GeneratedFreshVar65),#token{"#Bool","true"})
+rule <generatedTop><k>GeneratedFreshVar65 ~> #freezer(`'_:=_`(GeneratedFreshVar41, HOLE)) ~> GeneratedFreshVar223</k>GeneratedFreshVar224</generatedTop> => <generatedTop><k>`'_:=_`(GeneratedFreshVar41, GeneratedFreshVar65) ~> GeneratedFreshVar223</k>GeneratedFreshVar224</generatedTop> when `isKResult`(GeneratedFreshVar65)
+endmodule

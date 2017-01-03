@@ -1,0 +1,9 @@
+simple.v
+ex1_average.v
+ex1_average_alt.v
+ex2_minimum.v
+ex3_maximum.v
+ex4_multiplication_by_addition.v
+ex5_sum_recursive.v
+ex6_sum_iterative.v
+ex7_comm_assoc.v

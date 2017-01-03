@@ -1,0 +1,52 @@
+Organization:
+
+Basic definition of the language:
+
+domains.v defines maps and the syntx of terms.
+Maps are defined by empty, item, and join constructors,
+equipped with a suitable equivalence relation and
+tactics for reordering maps to make lookups go through.
+
+kstep.v defines just the step relation, it's split
+into a separate file because the Inductive relation
+definition is too big to step past in Proof General
+(an emacs bug limiting the size of buffers that can
+be sent to external processes).
+
+kstyle.v completes the definition of the language,
+by defining an equivalence relation on configurations,
+and showing that the step relation takes related
+configurations to related configurations.
+
+coinduction.v defines the reachability relation,
+and a system of derived rules for proving
+reachability properties, and some tactics
+for automatically evaluating with them.
+
+simple_proofs.v
+Some basic proofs for developing the proof automation tactics.
+
+Evaluation function:
+
+evaluator.v
+defines an evaluation as a function and proves it's
+faithful to the step function.
+
+eval_proofs.v
+Testing use of the evaluation function in Coq,
+and speed of reducing applications of it in various ways.
+
+extraction.v
+contains commands to extract an executable OCaml function
+from the evaluator.
+
+run.ml
+is a tiny little O'Caml driver that applies the extracted
+step function to a program until it finishes, or forever
+(can't be written in Coq because it's not total)
+
+Experimental:
+
+equate_map_reflection.v
+trying to replace the map-aligning tactics with
+proof by reflection.

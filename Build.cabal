@@ -1,0 +1,14 @@
+name:                Build
+version:             0.1.0.0
+license:             BSD3
+author:              Brandon Moore
+maintainer:          brandon.3.moore@gmail.com
+build-type:          Simple
+cabal-version:       >=1.10
+
+executable Build
+  main-is:             Build.hs
+  build-depends:       base >=4.7 && <5, shake ==0.15.*, directory == 1.2.*
+  -- base version forces GHC 7.8 or higher.
+  default-language:    Haskell2010
+  ghc-options:         -threaded -rtsopts "-with-rtsopts=-I0 -qg -qb"

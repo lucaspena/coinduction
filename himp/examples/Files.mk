@@ -1,0 +1,10 @@
+#ex01_undefined/Files.mk
+#ex02_simple/Files.mk
+ex03_list/Files.mk
+#ex04_io/Files.mk
+ex05_tree/Files.mk
+#ex06_call_stack/Files.mk
+#ex07_sorting/Files.mk
+#ex08_binary_search_tree/Files.mk
+#ex09_avl_tree/Files.mk
+ex10_schorr_waite/Files.mk

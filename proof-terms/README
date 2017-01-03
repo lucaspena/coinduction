@@ -1,0 +1,4 @@
+Experiments into getting nice proof terms.
+We are printing fairly nice terms.
+Next steps are figuring out how to get Coq to inferr the suppressed arguments
+itself, and nicer ways of abstracting out ugly domain reasoning proof terms.

@@ -1,0 +1,54 @@
+\documentclass{article}
+\begin{document}
+The core proof system is contained entirely within \verb|common/proof.v|
+This reduces a reachability claim in any transition relation to
+showing that the set of claims can be supported by a circular proof.
+The rest and the bulk of the system is proof automation for applying
+this system.
+
+The overall skeleton of the tactic is defined in
+\verb|implementation/fun_semantics.v|, parameterized over
+tactics for domain reasoning, and instantiated in each of the
+example directories.
+
+In the broad outline, the generic solver tactic is to break
+the claims down into separate proof goals for each distinct
+starting configuration, take the initial step according to
+the transition system, and then call the generic run tactic
+to finish the proof.
+
+The run tactic tries in order to finish immediately
+(case \verb|ddone|), to apply some assumed claim through
+transitivity (case \verb|dtrans|), to take a step
+accordingb to the transition relation (case \verb|dstep|),
+or to make a case distinction about a symbolic value on which
+execution is blocked, and at any point if execution is
+``stuck'' to pause at that point and leave proof goals for
+the user to make manual progress on, or the proof automation
+designer to automate.
+
+In their own way, each of these cases have to deal to a greater
+or lesser degree with deciding what exactly to do,
+handling failure, and manipulating hypotheses.
+
+The decision to be made in the \verb|ddone| case is whether
+the proof can or should try to conclude from the current state,
+with the dual goals of not trying expensive tactics when the
+current state couldn't possibly satisfy the goal predicate,
+and recognizing when the state looks enough like the goal to
+be worth pausing for the user even if automated tactics don't
+manage to prove that the goal is satisfied.
+
+This is done using a tactic argument to econstructor -
+which is applied to resulting goals in order, with the
+results of existential variable instantiations in earlier
+goals visible in later goals.
+
+To support this, the type of constructors of the relations
+should be structured so that unifying the conclusion with the
+goal handles everything that can be handled by Coq matching,
+and the remaining hypotheses have side conditions in increasing
+order of difficulties --  isValue checks that can be solved
+by computation first, then map equivalances that take a
+call to equate_maps, and more complicated domain reasoning
+last.

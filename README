@@ -1,0 +1,19 @@
+theory/
+contains some developments about the foundations,
+acceptable forms of decidable rules, higher order proofs, etc.
+
+This is more than we need for the first round of examples,
+where transitivity and step seem to be enough for derived rules,
+and first order properties suffice.
+
+common/
+Define the proof principles specialized to transitivity,
+and also a representation of map with an ACU equivalence
+relation, and some lemmas on that
+
+implementation/
+Define an example language, and prove properties of
+a bunch of example programs.
+
+himp/
+contains some old stuff

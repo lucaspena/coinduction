@@ -1,0 +1,57 @@
+Require Import simple.
+
+Require Import List.
+Require Import ZArith.
+
+(* attempt at all-paths version of average *)
+
+Definition average_code :=
+  Seq (SAssign "sum" (EPlus (EPlus (EVar "x") (EVar "y")) (EVar "z")))
+      (SReturn (EDiv (EVar "sum") (ECon 3))).
+
+Lemma average_spec : forall c, kcell c = kra (KStmt average_code) kdot -> 
+  forall xv yv zv sv m, store c ~=
+    ("x" s|-> KInt xv :* "y" s|-> KInt yv :* "z" s|-> KInt zv :*
+     "sum" s|-> sv :* m) ->
+  sound kstep (returns c ((xv + yv + zv)  / 3)%Z).
+Proof.
+simple_solver.
+Qed.
+
+intros.
+apply proved_sound.
+intros x P.
+Print returns.
+inversion 1. clear H1. subst.
+destruct x;simpl in * |- *;subst.
+
+eapply sstep.
+eexists.  unfold average_code. econstructor(solve[idtac]).
+intros.
+inversion H;subst;try discriminate;clear H.
+eapply dstep;[eexists;solve[step_solver]
+  |inversion 1;subst;try discriminate;clear H].
+simpl in H10. clear H10.
+eapply dstep;[eexists;solve[step_solver]
+  |inversion 1;subst;try discriminate;clear H].
+simpl in H9. injection H9. clear H9. intros;subst.
+  simpl in H10. clear H10.
+Focus 2.
+simpl in H9. injection H9. clear H9. intros;subst.
+  simpl in H10. clear H10.
+
+eapply dstep;[eexists;solve[step_solver]|inversion 1;subst;try discriminate]. 
+  subst. simpl in H30. injection H30. intros. subst.
+Focus 2. subst.
+
+oeapply dstep;[eexists;solve[step_solver]|inversion 1; try discriminate;[idtac]].
+eapply dstep;[eexists;solve[step_solver]|inversion 1; try discriminate;[idtac]].
+
+step.
+step.
+step.
+step.
+step.
+step.
+econstructor]. simpl.
+Qed.

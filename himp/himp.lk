@@ -1,0 +1,211 @@
+module HIMP
+syntax Bool [hook(Bool)]
+syntax Bool ::= "true" [coq(true)]
+              | "false" [coq(false)]
+              | notBool(Bool) [function, coq(negb)]
+              | Int "<>Int" Int [function, coq(Zneq_bool)]
+              | Int "<=Int" Int [function, coq(Zle_bool)]
+              | Int "<Int" Int [function, coq(Zlt_bool)]
+              | Int "==Int" Int [function, coq(Z.eqb)]
+              | allValues(Exps) [function, coq(all_values)]
+              | notKResult(K) [function, coq(notKResult)]
+syntax Id [hook(Id)] // ::= "main"
+syntax Int [hook(Int)]
+syntax Int ::= Token{$INT}
+             | Int "+Int" Int [function, coq(Zplus)]
+             | Int "-Int" Int [function, coq(Zminus)]
+             | Int "*Int" Int [function, coq(Zmult)]
+             | Int "/Int" Int [function, coq(Zdiv)]
+             | "negInt" Int [function, coq(Zopp)]
+syntax Map [hook(Map)]
+syntax Map ::= K "|->" K [klabel(item),hook(Map:_|->_)]
+             | ".Map" [hook(Map:.Map)]
+             | Map Map [klabel(union),hook(Map:__)]
+
+             | mkMap(Ids,Exps) [function, coq(mkMap)]
+syntax Struct [coq(sval)]
+syntax Struct ::=
+    Map [klabel(Struct),coq(Struct)]
+syntax Undef [coq(Undef)]
+syntax Undef ::= "undef" [coq(undef)]
+syntax KResult [coq(KResult)] ::=
+    Int        [coq(Int)]
+  | Bool       [coq(Bool)]
+  | Struct     [coq(VStruct)]
+  | Undef      [coq(VUndef)]
+syntax Exps ::= List{Exp,","}
+syntax Exp [coqEvaluated]
+syntax Exp ::=
+    Id              [coq(EVar)]
+  | "load" Exp      [coq(ELoad)]
+  | Int             [coq(ECon)]
+  | "-" Exp         [coq(ENeg)]
+  | Exp "+" Exp     [coq(EPlus)]
+  | Exp "-" Exp     [coq(EMinus)]
+  | Exp "*" Exp     [coq(EMult)]
+  | Exp "/" Exp     [coq(EDiv)]
+  | "build" Map     [coq(EBuild)]
+  | Exp "." Id      [coq(EProject)]
+  | Id "(" Exps ")" [klabel(ecall),coq(ECall)]
+  | "alloc"         [coq(EAlloc)]
+  | Bool            [coq(BCon)]
+  | Exp "<=" Exp    [coq(BLe)]
+  | Exp "<"  Exp    [coq(BLt)]
+  | Exp "==" Exp    [coq(BEq)]
+  | "not" Exp      [coq(BNot)]
+  | Exp "and" Exp [coq(BAnd)]
+  | Exp "or"  Exp [coq(BOr)]
+  | Struct        [coq(EValStruct)]
+syntax Stmt ::=
+    "skip"           [coq(Skip)]
+  | Id ":=" Exp      [coq(SAssign)]
+  | "*" Exp ":=" Exp [coq(HAssign)]
+  | "dealloc" Exp    [coq(HDealloc)]
+  | Stmt ";" Stmt    [coq(Seq)]
+  | "if" Exp "then" "{" Stmt "}" "else" "{" Stmt "}"
+                     [coq(SIf)]
+  | "while" Exp "do" "{" Stmt "}"
+                     [coq(SWhile)]
+  | "jump" Exp       [coq(Jump)]
+  | "decl" Id        [coq(Decl)]
+  | "return" Exp     [coq(SReturn)]
+  | "return"         [coq(SReturnVoid)]
+  | Id "(" Exps ")"  [klabel(scall),coq(SCall)]
+syntax Frame ::= frame(K,Map) [coq(frame)]
+
+syntax Frames ::= List{Frame,","}
+syntax Defn ::=
+    Id "(" Ids ")" "{" Stmt "}" [coq(FunDef)]
+syntax Ids ::= List{Id,","}
+syntax Pgm ::= List{Defn,""} [klabel(_,Pgm_)]
+
+configuration <k>PGM:Pgm</k>
+             <env>`.Map`()</env>
+             <stk>`.Frames`()</stk>
+             <heap>`.Map`()</heap>
+             <funs>`.Map`()</funs>
+             <mark>#Token{"Int","0"}</mark>
+
+rule <k>`_,Pgm_`(`_(_){_}`(F,Args,Body),P) => P...</k>
+     <funs>... `.Map`() => `item`(F,`_(_){_}`(F,Args,Body)) ...</funs> [label(k_next_defn)]
+/* rule <k>`.Pgm`() => `scall`(`main`(),`.Exps`())</k> */
+rule <k>`_+_`(I,J) => `_+Int_`(I,J) ...</k> [label(k_plus)]
+rule <k>`_*_`(I,J) => `_*Int_`(I,J)...</k> [label(k_mult)]
+rule <k>`_-_`(I,J) => `_-Int_`(I,J)...</k> [label(k_minus)]
+rule <k>`-_`(I) => `negInt_`(I)...</k> [label(k_neg)]
+rule <k>`_/_`(I,J) => `_/Int_`(I,J)...</k>
+     when `_<>Int_`(#token{"Int","0"},J) [label(k_div)]
+rule <k>`_<=_`(I,J) => `_<=Int_`(I,J)...</k> [label(k_le)]
+rule <k>`_<_`(I,J) => `_<Int_`(I,J)...</k> [label(k_lt)]
+rule <k>`_==_`(I,J) => `_==Int_`(I,J)...</k> [label(k_eq)]
+rule <k>`not_`(B) => `notBool`(B)...</k> [label(k_not)]
+rule <k>`_and_`(`true`(),B) => B...</k> [label(k_and_t)]
+rule <k>`_and_`(`false`(),_) => `false`()...</k> [label(k_and_f)]
+rule <k>`_or_`(`true`(),_) => `true`()...</k> [label(k_or_t)]
+rule <k>`_or_`(`false`(),B) => B...</k> [label(k_or_f)]
+rule <k>`skip`() => .K...</k> [label(k_skip)]
+rule <k>`if_then{_}else{_}`(`true`(),S,_) => S...</k> [label(k_if_t)]
+rule <k>`if_then{_}else{_}`(`false`(),_,S) => S...</k> [label(k_if_f)]
+rule <k>`while_do{_}`(B,S)
+      =>`if_then{_}else{_}`(B,`_;_`(S,`while_do{_}`(B,S)),`skip`())...</k>
+       [label(k_while)]
+rule <k>`_._`(`Struct`(`union`(`item`(F,V:KResult),_)),F) => V ...</k>
+       [label(k_project)]
+/* How to test that it's a value map?
+rule <k>build (V:Map) => V...</k> [label(k_build)]
+*/
+rule <k>I=>V...</k><env>`union`(`item`(I:Id,V:KResult),_)</env> [label(k_lookup)]
+rule <k>`alloc`()=>M...</k><heap>... `.Map`()=>`item`(M,`undef`()) ...</heap>
+     <mark>M=>`_+Int_`(M,#token{"Int","1"})</mark> [label(k_alloc)]
+rule <k>`dealloc_`(Addr)=>.K ...</k><heap>... `item`(Addr:Int,_)=>`.Map`()...</heap>
+      [label(k_dealloc)]
+rule <k>`load_`(Addr)=> V...</k><heap>...`item`(Addr:Int,V:KResult)...</heap>
+      [label(k_load)]
+rule <k>`_:=_`(X,V) => .K...</k>
+     <env>... `item`(X:Id,_=>V:KResult) ...</env> [label(k_assign)]
+rule <k>`*_:=_`(Addr,V) => .K...</k>
+     <heap>... `item`(Addr:Int,_ => V:KResult) ...</heap> [label(k_hassign)]
+rule <k>`decl_`(X) => .K...</k>
+     <env>... `.Map`() => `item`(X,`undef`()) ...</env> [label(k_decl)]
+rule <k>`ecall`(F,Args) ~> Rest => Body</k>
+     <funs>... `item`(F,`_(_){_}`(F,Formals,Body)) ...</funs>
+     <env>Env => `mkMap`(Formals,Args)</env>
+     <stk>Stk => `_,Frames_`(`frame`(Rest,Env),Stk)</stk>
+  when `allValues`(Args) [label(k_call)]
+rule <k>`scall`(F,Args) ~> Rest => Body</k>
+     <funs>... `item`(F,`_(_){_}`(F,Formals,Body)) ...</funs>
+     <env>Env => `mkMap`(Formals,Args)</env>
+     <stk>Stk => `_,Frames_`(`frame`(Rest,Env),Stk)</stk>
+  when `allValues`(Args) [label(k_scall)]
+rule <k>`return_`(V:KResult) ~> _ => V ~> Rest</k>
+     <env>_ => Env:Map</env>
+     <stk>`_,Frames_`(`frame`(Rest,Env),Stk) => Stk</stk> [label(k_return)]
+rule <k>`return`() ~> _ => Rest</k>
+     <env>_ => Env:Map</env>
+     <stk>`_,Frames_`(`frame`(Rest,Env),Stk) => Stk</stk> [label(k_returnv)]
+// heating rules:
+rule <k>`load_`(E) => E ~> `load_`(HOLE) ...</k>
+  when `notKResult`(E) [label(k_heat_load)]
+rule <k>`_+_`(X,Y) => X ~> `_+_`(HOLE,Y) ...</k>
+  when `notKResult`(X) [label(k_heat_plus_l)]
+rule <k>`_+_`(X,Y) => Y ~> `_+_`(X,HOLE) ...</k>
+  when `notKResult`(Y) [label(k_heat_plus_r)]
+rule <k>`_-_`(X,Y) => X ~> `_-_`(HOLE,Y) ...</k>
+  when `notKResult`(X) [label(k_heat_minus_l)]
+rule <k>`_-_`(X,Y) => Y ~> `_-_`(X,HOLE) ...</k>
+  when `notKResult`(Y) [label(k_heat_minus_r)]
+rule <k>`-_`(X) => X ~> `-_`(HOLE) ...</k>
+  when `notKResult`(X) [label(k_heat_neg)]
+rule <k>`_*_`(X,Y) => X ~> `_*_`(HOLE,Y) ...</k>
+  when `notKResult`(X) [label(k_heat_mult_l)]
+rule <k>`_*_`(X,Y) => Y ~> `_*_`(X,HOLE) ...</k>
+  when `notKResult`(Y) [label(k_heat_mult_r)]
+rule <k>`_/_`(X,Y) => X ~> `_/_`(HOLE,Y) ...</k>
+  when `notKResult`(X) [label(k_heat_div_l)]
+rule <k>`_/_`(X,Y) => Y ~> `_/_`(X,HOLE) ...</k>
+  when `notKResult`(Y) [label(k_heat_div_r)]
+rule <k>`_<=_`(X,Y) => X ~> `_<=_`(HOLE,Y) ...</k>
+  when `notKResult`(X) [label(k_heat_le_l)]
+rule <k>`_<=_`(X,Y) => Y ~> `_<=_`(X,HOLE) ...</k>
+  when `notKResult`(Y) [label(k_heat_le_r)]
+rule <k>`_<_`(X,Y) => X ~> `_<_`(HOLE,Y) ...</k>
+  when `notKResult`(X) [label(k_heat_lt_l)]
+rule <k>`_<_`(X,Y) => Y ~> `_<_`(X,HOLE) ...</k>
+  when `notKResult`(Y) [label(k_heat_lt_r)]
+rule <k>`_==_`(X,Y) => X ~> `_==_`(HOLE,Y) ...</k>
+  when `notKResult`(X) [label(k_heat_eq_l)]
+rule <k>`_==_`(X,Y) => Y ~> `_==_`(X,HOLE) ...</k>
+  when `notKResult`(Y) [label(k_heat_eq_r)]
+rule <k>`not_`(B) => B ~> `not_`(HOLE) ...</k>
+  when `notKResult`(B) [label(k_heat_not)]
+rule <k>`_and_`(B,C) => B ~> `_and_`(HOLE,C) ...</k>
+  when `notKResult`(B) [label(k_heat_and)]
+rule <k>`_or_`(B,C) => B ~> `_or_`(HOLE,C) ...</k>
+  when `notKResult`(B) [label(k_heat_or)]
+rule <k>`_:=_`(V,E) => E ~> `_:=_`(V,HOLE) ...</k>
+  when `notKResult`(E) [label(k_heat_assign)]
+rule <k>`*_:=_`(E1,E2) => E1 ~> `*_:=_`(HOLE,E2) ...</k>
+  when `notKResult`(E1) [label(k_heat_hassign_l)]
+rule <k>`*_:=_`(E1,E2) => E2 ~> `*_:=_`(E1,HOLE) ...</k>
+  when `notKResult`(E2) [label(k_heat_hassign_r)]
+rule <k>`dealloc_`(E) => E ~> `dealloc_`(HOLE) ...</k>
+  when `notKResult`(E) [label(k_heat_dealloc)]
+rule <k>`_._`(E,F) => E ~> `_._`(HOLE,F) ...</k>
+  when `notKResult`(E) [label(k_heat_project_l)]
+rule <k>`if_then{_}else{_}`(B,S1,S2) => B ~> `if_then{_}else{_}`(HOLE,S1,S2) ...</k>
+  when `notKResult`(B) [label(k_heat_if)]
+rule <k>`return_`(E) => E ~> `return_`(HOLE) ...</k>
+  when `notKResult`(E) [label(k_heat_return)]
+rule <k>`_;_`(S1,S2) => S1 ~> S2 ...</k> [label(k_heat_seq)]
+/* difficult heating rules
+  | k_heat_build : forall fields k, `(
+       find_unevaluated_entry fields = Some (v,k) ->
+       heat_step kstep (EBuild fields) v (KFreezeE (fun v' => EBuild (k v'))) rest)
+  | k_heat_call : forall f k, `(
+       first_unevaluated_arg nil args = Some (v, k) ->
+       heat_step kstep (Call f args) v (KFreezeE (fun v' => Call f (k v'))) rest)
+  | k_heat_scall : forall f k, `(
+       first_unevaluated_arg nil args = Some (v, k) ->
+       heat_step kstep (SCall f args) v (KFreezeE (fun v' => SCall f (k v'))) rest)
+ */
+endmodule
