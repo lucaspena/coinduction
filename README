@@ -11,9 +11,18 @@ Define the proof principles specialized to transitivity,
 and also a representation of map with an ACU equivalence
 relation, and some lemmas on that
 
-implementation/
-Define an example language, and prove properties of
-a bunch of example programs.
-
 himp/
-contains some old stuff
+example proofs for imp-type language with heaps
+
+stack/
+forth-like stack based language
+
+lambda/
+lambda calculus, no named functions (de bruijn indices)
+
+csl/
+very simple imp language (adapted from Chlipala's FRAP text),
+first concurrency examples; first examples with locks
+
+
+all files compiled using Coq version 8.4

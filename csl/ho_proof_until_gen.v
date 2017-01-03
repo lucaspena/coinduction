@@ -300,7 +300,7 @@ Lemma t_coind'' : forall b (X Y : Spec),
 Proof.
   intros. eapply myf_t with (Z := X) in H. unfold subspec in H.
   intro;intros. apply H. constructor. firstorder. assumption.
-
+Qed.
 
 
 End relations.

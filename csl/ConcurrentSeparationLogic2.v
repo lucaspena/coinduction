@@ -3,7 +3,7 @@
   * Author: Adam Chlipala
   * License: https://creativecommons.org/licenses/by-nc-nd/4.0/ *)
 
-Require Import Map Sets Setoid Classes.Morphisms.
+Require Import Map MySets Setoid Classes.Morphisms.
 Require Import Decidable Coq.Logic.Eqdep Coq.Logic.EqdepFacts Peano_dec Coq.omega.Omega.
 
 Require Import ho_proof_until_gen.
@@ -313,147 +313,21 @@ Proof.
   clear H6. clear H3. clear H5. clear H4. clear H8. clear H9.
   clear H11. clear H1.
 
-  eapply tcoind. ho_spec_mono.
-  apply sstep. econstructor. apply StepPar2. constructor.
+  eapply tcoind with A. apply ho_spec_mono.
 
-  intros. injpair1 H1 H8.
-
-  split. admit.
-
-  econstructor. apply step_mono.
-  intros; intro; intros. apply H3.
-  apply sstep. econstructor. apply StepPar2. constructor.
   intros. 
-  injpair1 H3 H11. split. admit. edestruct H2. eapply H4; try eassumption. 
-  eapply H4; try eassumption. eapply H4; try eassumption. intros. apply H1. 
-
-    assert (T (step (@cslstep unit)) ho_spec A
-            {| hp := $0; lcks := {}; command := P || incrementer |} 
-            (fun _ c : cfg unit => inc_inv c) (fun _ : cfg unit => False)).
-    admit.
 
 
-    
-    edestruct H2. clear H4.
-    destruct H3. 
-    split. intros. split. eapply H2. 
-    
-    admit.
-    apply H3 in H2. 
-  
-  apply tdone. 
-  
-  split. 
+    (* assert (T (step (@cslstep unit)) ho_spec A *)
+    (*         {| hp := $0; lcks := {}; command := P || incrementer |}  *)
+    (*         (fun _ c : cfg unit => inc_inv c) (fun _ : cfg unit => False)). *)
+    (* admit. *)
 
-  apply tstep. 
+  admit. admit. apply ho_gfp.
+  Grab Existential Variables.
+  assumption.
+  assumption.
 
-  econstructor. eapply step_mono. intros. apply t_coind. apply tstep. 
-apply t_coind.
-  
-  apply tstep. apply ho_spec_mono. econstructor. apply StepPar2.
-  constructor. intros.
-  injpair1 H1 H8.
-
-  injpair3 H5 H6 H7 H10. 
-  split. incsolve H.  
-
-  apply tstep. apply ho_spec_mono. econstructor. apply StepPar2.
-  constructor. constructor. constructor. sets idtac.
-
-  intros. injpair1 H H8. admit. clear H.
-  
-  injpair4 H4 H8 H9 H9 H12.
-  injpair4 H3 H9 H10 H10 H13.
-  injpair1 H6 H11.
-  split. incsolve H.
-
-  apply tstep. apply ho_spec_mono. econstructor. apply StepPar2.
-  constructor. apply StepBindProceed.
-
-  intros. injpair1 H H12. admit. clear H.
-
-  injpair4 H9 H12 H13 H13 H16.
-  injpair4 H3 H13 H14 H14 H17. clear H18.
-  injpair4 H8 H14 H15 H15 H18.
-  inversion H11. do 2 (apply inj_pair2 in H16). apply inj_pair2 in H19; subst.  
-  split. incsolve H.
-
-  apply tstep. apply ho_spec_mono. econstructor. apply StepPar2.
-  constructor. constructor. constructor. eapply lookup_add_eq. trivial.
-
-  intros. injpair1 H H16. admit. clear H. clear H7. 
-  injpair4 H12 H15 H16 H16 H19.
-  injpair4 H7 H16 H17 H17 H20.
-  injpair1 H11 H18. 
-  split. incsolve H.
-
-  apply tstep. apply ho_spec_mono. econstructor. apply StepPar2.
-  constructor. apply StepBindProceed.
-
-  intros. injpair1 H H19. admit. clear H.
-  injpair4 H16 H19 H20 H20 H23.
-  injpair4 H15 H20 H21 H21 H24.
-  inversion H17. do 2 (apply inj_pair2 in H22). apply inj_pair2 in H25; subst.
-  split. incsolve H.
-
-  apply tstep. apply ho_spec_mono. econstructor. apply StepPar2.
-  constructor. constructor. econstructor. eapply lookup_add_eq. trivial.
-
-  apply map_get in H13; subst. 
-  intros. injpair1 H H21. admit. clear H.
-  injpair4 H17 H21 H22 H22 H25.
-  injpair4 H13 H22 H23 H23 H26.
-  injpair1 H18 H25. 
-  split. incsolve H.
-
-  apply tstep. apply ho_spec_mono. econstructor. apply StepPar2.
-  constructor. apply StepBindProceed.
-
-  intros. injpair1 H H25. admit. clear H.
-  injpair4 H22 H25 H26 H26 H29.
-  injpair4 H21 H26 H27 H27 H30.
-  inversion H23. do 2 (apply inj_pair2 in H28). apply inj_pair2 in H31; subst.
-  split. incsolve H.
-
-  apply tstep. apply ho_spec_mono. econstructor. apply StepPar2.
-  constructor. econstructor. constructor. sets idtac. right.
-  unfold List.In. left. trivial.
-
-  intros. injpair1 H H28. admit. clear H.
-  injpair4 H24 H28 H29 H29 H32.
-  injpair4 H23 H29 H30 H30 H33.
-  injpair1 H25 H31.
-  split. incsolve H.
-
-  apply tstep. apply ho_spec_mono. econstructor. apply StepPar2.
-  constructor. apply StepBindProceed.
-
-  intros. injpair1 H H32. admit. clear H.
-  injpair4 H29 H32 H33 H33 H36.
-  injpair4 H28 H33 H34 H34 H37.
-  inversion H30. do 2 (apply inj_pair2 in H35). apply inj_pair2 in H38; subst.
-  split. incsolve H. 
-
-  destruct (v ==n 0). apply tdone. apply ho_spec_mono. omega.
-
-  apply tstep. apply ho_spec_mono. econstructor. apply StepPar2.
-  apply StepBindProceed.
-
-  intros. injpair1 H H35. admit. clear H.
-  injpair4 H31 H35 H36 H36 H39.
-  inversion H30. do 2 (apply inj_pair2 in H37). apply inj_pair2 in H40; subst.
-  split. incsolve H.
-  
-  eapply ttrans. apply ho_spec_mono.
-  assert (T (step (@cslstep unit)) ho_spec A
-            {| hp := $0 $+ (0, v); lcks := {}; command := P || incrementer |} 
-            (fun _ c : cfg unit => inc_inv c) (fun _ : cfg unit => False)).
-  apply Tf_id. assumption.
-  assert ($0 $+ (0, v) = $0 $+ (0, v) $+ (0, v) $+ (0, v)) by maps_equal.
-  assert (({} \cup {0}) \setminus {0} = {}). sets idtac.
-  rewrite <- H2. rewrite H30. apply H.
-
-  intros. inversion H. apply ho_gfp.
 Qed.
 
 Print Assumptions ho_ok_all.

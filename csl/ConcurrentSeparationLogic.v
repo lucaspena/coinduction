@@ -3,7 +3,7 @@
   * Author: Adam Chlipala
   * License: https://creativecommons.org/licenses/by-nc-nd/4.0/ *)
 
-Require Import Map Sets Setoid Classes.Morphisms.
+Require Import Map MySets Setoid Classes.Morphisms.
 Require Import Decidable Coq.Logic.Eqdep Coq.Logic.EqdepFacts Peano_dec Coq.omega.Omega.
 
 Require Import ho_proof_until_gen.
