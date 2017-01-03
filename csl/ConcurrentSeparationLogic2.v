@@ -196,21 +196,31 @@ Definition inc_inv A : cfg A -> Prop :=
       exists (x : nat) (h1 h2 : heap),
         split h h1 h2 /\ disjoint h1 h2 /\ ptsto 0 x h1 /\ [|x > 0|]%sep h2.
 
+(* Inductive ho_spec_old (B : Spec (cfg unit)) : Spec (cfg unit) := *)
+(* | claim1_old : forall h P n, *)
+(*     h = $0 $+ (0, n) -> n > 0 ->  *)
+(*     B (Cfg h {} (P || incrementer)) (fun _ c => inc_inv c) (fun _ => False) -> *)
+    
+(*     (forall x x' x'' l l' l'' Z Q, *)
+(*       B (Cfg x l (Z || Q)) (fun _ c => inc_inv c) (fun _ => False) <-> *)
+(*       (forall Z', cslstep (Cfg x l (Z || Q)) (Cfg x' l' (Z' || Q)) -> *)
+(*                   B (Cfg x' l' (Z' || Q)) (fun _ c => inc_inv c) (fun _ => False) *)
+(*                   /\ inc_inv (Cfg x' l' (Z' || Q))) /\ *)
+(*       (forall Q', cslstep (Cfg x l (Z || Q)) (Cfg x'' l'' (Z || Q')) -> *)
+(*                   inc_inv (Cfg x'' l'' (Z || Q')) -> *)
+(*                   B (Cfg x'' l'' (Z || Q')) (fun _ c => inc_inv c) (fun _ => False))) *)
+      
+(*     -> ho_spec_old B (Cfg (h $+ (0 ,n)) {} (P || incrementer)) *)
+(*                (fun _ c => inc_inv c) (fun _ => False). *)
 
 Inductive ho_spec (B : Spec (cfg unit)) : Spec (cfg unit) :=
 | claim1 : forall h P n,
     h = $0 $+ (0, n) -> n > 0 -> 
     B (Cfg h {} (P || incrementer)) (fun _ c => inc_inv c) (fun _ => False) ->
-    
-    (forall x x' x'' l l' l'' Z Q,
-      B (Cfg x l (Z || Q)) (fun _ c => inc_inv c) (fun _ => False) <->
-      (forall Z', cslstep (Cfg x l (Z || Q)) (Cfg x' l' (Z' || Q)) ->
-                  B (Cfg x' l' (Z' || Q)) (fun _ c => inc_inv c) (fun _ => False)
-                  /\ inc_inv (Cfg x' l' (Z' || Q))) /\
-      (forall Q', cslstep (Cfg x l (Z || Q)) (Cfg x'' l'' (Z || Q')) ->
-                  inc_inv (Cfg x'' l'' (Z || Q')) ->
-                  B (Cfg x'' l'' (Z || Q')) (fun _ c => inc_inv c) (fun _ => False)))
-      
+    (forall x x' l l' Z Q,
+        (forall Z', cslstep (Cfg x l (Z || Q)) (Cfg x' l' (Z' || Q)) ->
+                    B (Cfg x' l' (Z' || Q)) (fun _ c => inc_inv c) (fun _ => False)
+                    /\ inc_inv (Cfg x' l' (Z' || Q))))      
     -> ho_spec B (Cfg (h $+ (0 ,n)) {} (P || incrementer))
                (fun _ c => inc_inv c) (fun _ => False).
 
@@ -220,23 +230,22 @@ Inductive nonho_spec : Spec (cfg unit) :=
     nonho_spec (Cfg (h $+ (0, n)) {} (incrementer || incrementer))
                (fun _ c => inc_inv c) (fun _ => False).
 
-
 Lemma ho_spec_mono : mono ho_spec.
 Proof.
-  destruct 2.  econstructor; try eassumption. apply H. eassumption. admit.
+  destruct 2. econstructor; try eassumption. apply H. eassumption.
+  intros. split; try apply H; eapply H3; eassumption.
 Qed.
+
 
 Lemma ho_gfp : subspec nonho_spec (ho_spec nonho_spec).
 Proof.
   destruct 1. econstructor; try eassumption. assert (h = (h $+ (0,n))).
-  subst. maps_equal. rewrite H1. econstructor; try eassumption. admit.
+  subst. maps_equal. rewrite H1. econstructor; try eassumption.
+  intros. split. admit. admit. 
 Qed.
 
 Ltac injpair1 H H1 := inversion H;
                       (try repeat apply inj_pair2 in H1; subst).
-Ltac injpair2 H H1 H2 := inversion H;
-                         (try repeat apply inj_pair2 in H1;
-                          try repeat apply inj_pair2 in H2; subst).
 Ltac injpair3 H H1 H2 H3 := inversion H;
                             (try repeat apply inj_pair2 in H1; 
                              try repeat apply inj_pair2 in H2; 
@@ -277,9 +286,18 @@ Proof.
   rewrite lookup_remove_ne. rewrite lookup_add_ne. trivial. omega. omega.
 Qed.
 
+Ltac get_next1 := apply tstep; apply ho_spec_mono; econstructor; apply StepPar2;
+                  econstructor; econstructor; econstructor.
+
+Ltac get_next2 := apply tstep; apply ho_spec_mono; econstructor; apply StepPar2;
+                 constructor; apply StepBindProceed.
+
 Ltac incsolve H := unfold inc_inv; intros; 
                   inversion H; subst;
                    apply heap_eq; auto.
+
+Ltac lstep H := edestruct H; try eassumption; split; try eassumption;
+                apply trule; try apply ho_spec_mono; assumption.
 
 Lemma map_get : forall n (v : nat), ($0 $+ (0, n) $+ (0, n)) $? 0 = Some v -> n = v.
 Proof.
@@ -298,35 +316,127 @@ Proof.
   intros. 
   injpair1 H3 H9.
   assert ($0 $+ (0,n) = $0 $+ (0,n) $+ (0,n)) by maps_equal.
-  eapply H2 in H1. destruct H1. rewrite <- H in H3.
-  destruct H1 with c1'. eassumption.
-  split. eassumption.
-  unfold inc_inv in H7. edestruct H7 with (h := h'). trivial.
-  inversion H8. inversion H9. inversion H10. inversion H12. inversion H14.
-  clear H10. clear H12. clear H14.
-  inversion H16; subst. inversion H15; subst.
-  inversion H11; subst.
-  clear H16. clear H15. clear H13. clear H7.
+  lstep H2. 
 
-  clear H6. clear H3. clear H5. clear H4. clear H8. clear H9.
-  clear H11. clear H1.
+  injpair3 H6 H8 H9 H12. 
+  split. incsolve H. clear H3.
 
-  eapply tcoind with A. apply ho_spec_mono.
+  apply tstep. apply ho_spec_mono. econstructor. apply StepPar2.
+  constructor. constructor. constructor. sets idtac.
 
-  intros. 
+  intros. injpair1 H H9.
+  lstep H2. clear H.
 
+  injpair4 H5 H9 H10 H10 H13.
+  injpair4 H4 H10 H11 H11 H14.
+  injpair1 H7 H12. 
+  split. incsolve H.
 
-    (* assert (T (step (@cslstep unit)) ho_spec A *)
-    (*         {| hp := $0; lcks := {}; command := P || incrementer |}  *)
-    (*         (fun _ c : cfg unit => inc_inv c) (fun _ : cfg unit => False)). *)
-    (* admit. *)
+  apply tstep. apply ho_spec_mono. econstructor. apply StepPar2.
+  constructor. apply StepBindProceed.
 
-  admit. admit. apply ho_gfp.
-  Grab Existential Variables.
-  assumption.
-  assumption.
+  intros. injpair1 H H13.
+  lstep H2. clear H. 
+
+  injpair4 H10 H13 H14 H14 H17.
+  injpair4 H9 H14 H15 H15 H18.
+  inversion H11. do 2 (apply inj_pair2 in H16). apply inj_pair2 in H19; subst.  
+  split. incsolve H.
+
+  apply tstep. apply ho_spec_mono. econstructor. apply StepPar2.
+  constructor. constructor. constructor. eapply lookup_add_eq. trivial.
+
+  intros. injpair1 H H16.
+  lstep H2. clear H. 
+
+  injpair4 H12 H16 H17 H17 H20.
+  injpair4 H11 H17 H18 H18 H21.
+  injpair1 H13 H19. 
+  split. incsolve H.
+
+  apply tstep. apply ho_spec_mono. econstructor. apply StepPar2.
+  constructor. apply StepBindProceed.
+
+  intros. injpair1 H H20.
+  lstep H2. clear H.
+  
+  injpair4 H17 H20 H21 H21 H24.
+  injpair4 H16 H21 H22 H22 H25.
+  inversion H18. do 2 (apply inj_pair2 in H23). apply inj_pair2 in H26; subst.
+  split. incsolve H.
+
+  apply tstep. apply ho_spec_mono. econstructor. apply StepPar2.
+  constructor. constructor. econstructor. eapply lookup_add_eq. trivial.
+
+  intros. injpair1 H H23.
+  lstep H2. clear H. (* clear H8. clear H14. clear H15. *)
+
+  apply map_get in H15; subst. 
+  injpair4 H19 H22 H23 H23 H26.
+  injpair4 H15 H23 H24 H24 H27.
+  injpair1 H18 H26.
+  split. incsolve H.
+
+  apply tstep. apply ho_spec_mono. econstructor. apply StepPar2.
+  constructor. apply StepBindProceed.
+
+  intros. injpair1 H H26.
+  lstep H2. clear H.
+
+  injpair4 H23 H26 H27 H27 H30.
+  injpair4 H22 H27 H28 H28 H31.
+  inversion H24. do 2 (apply inj_pair2 in H29). apply inj_pair2 in H32; subst.
+  split. incsolve H. 
+
+  apply tstep. apply ho_spec_mono. econstructor. apply StepPar2.
+  constructor. constructor. constructor. sets idtac. right. unfold List.In.
+  left. trivial.
+
+  intros. injpair1 H H29.
+  lstep H2. clear H.
+
+  injpair4 H25 H29 H30 H30 H33.
+  injpair4 H24 H30 H31 H31 H34.
+  injpair1 H26 H32.
+  split. incsolve H.
+
+  apply tstep. apply ho_spec_mono. econstructor. apply StepPar2.
+  constructor. apply StepBindProceed.
+
+  intros. injpair1 H H33.
+  lstep H2. clear H.
+
+  injpair4 H30 H33 H34 H34 H37.
+  injpair4 H29 H34 H35 H35 H38.
+  inversion H31. do 2 (apply inj_pair2 in H36). apply inj_pair2 in H39; subst.
+  split. incsolve H. 
+
+  destruct (v ==n 0). apply tdone. apply ho_spec_mono. omega.
+
+  apply tstep. apply ho_spec_mono. econstructor. apply StepPar2.
+  apply StepBindProceed.
+
+  intros. injpair1 H H36.
+  lstep H2. clear H.
+
+  injpair4 H32 H36 H37 H37 H40.
+  inversion H31. do 2 (apply inj_pair2 in H38). apply inj_pair2 in H41; subst.
+  split. incsolve H. 
+
+  eapply ttrans. eapply ho_spec_mono.
+  assert (T (step (@cslstep unit)) ho_spec A
+            {| hp := $0 $+ (0, v); lcks := {}; command := P || incrementer |} 
+            (fun _ c : cfg unit => inc_inv c) (fun _ : cfg unit => False)).
+  apply Tf_id. assumption.
+  assert ($0 $+ (0, v) = $0 $+ (0, v) $+ (0, v) $+ (0, v)) by maps_equal.
+  assert (({} \cup {0}) \setminus {0} = {}) by sets idtac.
+  rewrite <- H3. rewrite H31. apply H.
+
+  intros. inversion H. 
+  apply ho_gfp. 
 
 Qed.
 
-(* Print Assumptions ho_ok_all. *)
+Print Assumptions ho_ok_all.
 
+ 
